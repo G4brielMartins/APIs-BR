@@ -9,7 +9,7 @@ from . import API
 
 class DadosAbertos(API):
     """
-    Classe para auxiliar com requisões na API REST do Portal de Dados Abertos.
+    Classe para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ class DadosAbertos(API):
         self.token = auth_token
         self.header = {'chave-api-dados-abertos': auth_token}
     
-    def get_id(self, title: str, *, depth: int = 10) -> str:
+    def get_id(self, title: str, /, depth: int = 10) -> str:
         """
         Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
 
@@ -69,7 +69,7 @@ class DadosAbertos(API):
                     dict_nomes_semelhantes[conjunto['title']] = conjunto['id']
         raise self.NoMatchFound(dict_nomes_semelhantes)
     
-    def get_data(self, identifier: str, *, period: str = 'all',
+    def get_data(self, identifier: str, /, period: str = 'all',
                     file_type: str = 'csv') -> dict[str, bytes]:
         """
         Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.

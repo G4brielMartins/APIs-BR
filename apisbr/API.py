@@ -1,3 +1,4 @@
+from typing import Optional
 from os.path import join
 
 class API():
@@ -11,14 +12,14 @@ class API():
         Provocado quando métodos essenciais e não implementados são chamados.
     """    
     DATEPARSER_SETTINGS = {'DATE_ORDER': 'DMY', 'PREFER_DAY_OF_MONTH': 'last', 'PREFER_MONTH_OF_YEAR': 'last'}
-    """Configuração para o dateparser quando """
+    """Configuração para o dateparser quando datas são lidas das APIs"""
     
     server_url = ''
     """URL do servidor da API."""
     
     def get_id(self, title: str) -> str:
         """
-        Retorna o ID do conjunto de dados com nome equivalente a <title>.  
+        Retorna o ID do conjunto de dados com nome equivalente a [title].  
         *Implementado nas classes filhas.
         """
         raise NotImplementedError
@@ -31,9 +32,9 @@ class API():
         raise NotImplementedError
     
     def download_data(self, identifier: str, output_folder: str, /,
-                      data: dict[str, bytes] = None, **kwargs) -> None:
+                      data: Optional[dict[str, bytes]] = None, **kwargs) -> None:
         """
-        Baixa os arquivos retornados pelo método get_data(<identifier>) na pasta <output_folder>. 
+        Baixa os arquivos retornados pelo método get_data([identifier]) na pasta [output_folder]. 
 
         Parameters
         ----------
@@ -71,7 +72,7 @@ class API():
         Erro chamado para indicar falha em encontrar correspondência exata com o termo pesquisado.  
         O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pesquisado.
         """    
-        def __init__(self, semelhantes: dict = None):
+        def __init__(self, semelhantes: Optional[dict] = None):
             self.semelhantes = semelhantes
             mensagem = "Nenhuma correspondência encontrada."
             

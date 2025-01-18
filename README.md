@@ -1,4 +1,6 @@
 O APIsBR é um pacote Python para facilitar pedidos à APIs de dados do Brasil.
+- [Homepage](https://github.com/G4brielMartins/APIs-BR/wiki)
+- [Documentação](http://htmlpreview.github.io/?https://github.com/G4brielMartins/apis-br/blob/master/doc/apisbr/index.html)
 
 As APIs disponibilizadas pelos orgãos brasileiros (IBGE e Dados Abertos, por exemplo), apresentam problemas:
 - Modos de requisição que variam muito de API para API

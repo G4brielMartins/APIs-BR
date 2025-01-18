@@ -2,12 +2,11 @@ version = 1
 requires-python = ">=3.12"
 
 [[package]]
-name = "apisbr"
+name = "apis-br"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "dateparser" },
-    { name = "python-dotenv" },
     { name = "requests" },
 ]
 
@@ -15,12 +14,12 @@ dependencies = [
 dev = [
     { name = "pdoc3" },
     { name = "pytest" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "dateparser", specifier = ">=1.2.0" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "requests", specifier = ">=2.32.3" },
 ]
 
@@ -28,6 +27,7 @@ requires-dist = [
 dev = [
     { name = "pdoc3", specifier = ">=0.11.5" },
     { name = "pytest", specifier = ">=8.3.4" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
 ]
 
 [[package]]
