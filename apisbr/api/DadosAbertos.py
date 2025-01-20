@@ -3,7 +3,6 @@ import datetime as dt
 from urllib.parse import quote
 
 import requests
-import dateparser
 
 from . import API
 
@@ -107,19 +106,19 @@ class DadosAbertos(API):
                 min_date = dt.datetime.min
                 max_date = dt.datetime.max
             case [x]:
-                d = dateparser.parse(x, settings=self.DATEPARSER_SETTINGS)
+                d = self.date_parser.parse(x)
                 min_date = dt.datetime(d.year, 1, 1)
                 max_date = d
             case [x, y]:
-                min_date = dateparser.parse(x, settings=self.DATEPARSER_SETTINGS)
-                max_date = dateparser.parse(y, settings=self.DATEPARSER_SETTINGS)
+                min_date = self.date_parser.parse(x)
+                max_date = self.date_parser.parse(y)
             case _:
                 raise ValueError("Valor de [period] não pôde ser reconhecido.")
         
         recursos_dict = dict()
         for recurso in req.json()['recursos']:
             extensao_errada = file_type not in [recurso['formato'].lower(), 'all']
-            data_errada = not (min_date <= dateparser.parse(recurso['dataCatalogacao']) <= max_date)
+            data_errada = not (min_date <= self.date_parser.parse(recurso['dataCatalogacao']) <= max_date)
             
             if extensao_errada or data_errada:
                 continue

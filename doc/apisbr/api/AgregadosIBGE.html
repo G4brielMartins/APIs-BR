@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>apisbr API documentation</title>
+<title>apisbr.api.AgregadosIBGE API documentation</title>
 <meta name="description" content="">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
@@ -33,28 +33,134 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Package <code>apisbr</code></h1>
+<h1 class="title">Module <code>apisbr.api.AgregadosIBGE</code></h1>
 </header>
 <section id="section-intro">
 </section>
 <section>
-<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt><code class="name"><a title="apisbr.api" href="api/index.html">apisbr.api</a></code></dt>
+<dt id="apisbr.api.AgregadosIBGE.get_agregados_dict"><code class="name flex">
+<span>def <span class="ident">get_agregados_dict</span></span>(<span>) ‑> dict[str, str]</span>
+</code></dt>
 <dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="apisbr.core" href="core/index.html">apisbr.core</a></code></dt>
-<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_agregados_dict() -&gt; dict[str, str]:
+    agregados_dict = dict()
+    for pesquisa in requests.get(&#34;https://servicodados.ibge.gov.br/api/v3/agregados&#34;).json():
+        for agregado in pesquisa[&#39;agregados&#39;]:
+            agregados_dict[agregado[&#39;nome&#39;]] = agregado[&#39;id&#39;]
+    return agregados_dict</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
 </section>
 <section>
-</section>
-<section>
-</section>
-<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="apisbr.api.AgregadosIBGE.AgregadosIBGE"><code class="flex name class">
+<span>class <span class="ident">AgregadosIBGE</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AgregadosIBGE(API):
+    &#34;&#34;&#34;
+    Classe para auxiliar com requisições na [API IBGE Agregados](https://servicodados.ibge.gov.br/api/docs/agregados?versao=3).
+    &#34;&#34;&#34;
+    server_url = &#34;https://servicodados.ibge.gov.br/api/v3/agregados&#34;
+    agregados_dict = get_agregados_dict()
+    &#34;Dicionário com todos os agregados disponíveis [chaves] e seus IDs [valores].&#34;
+    
+    def get_id(self, title: list[str]) -&gt; str|dict[str, str]:
+        if not isinstance(title, str):
+            output_dict = dict()
+            for nome in title:
+                output_dict[title] = self.get_id(nome)
+            return output_dict
+        
+        match title.split(&#34;:&#34;):
+            case [x, y]:
+                nome_agregado, nome_variavel = x, y
+            case [x]:
+                nome_agregado, nome_variavel = x, None
+        
+        id_agregado = None
+        dict_semelhantes = dict()
+        try:
+            if nome_agregado.isdigit():
+                id_agregado = nome_agregado
+            else:
+                id_agregado = self.agregados_dict[nome_agregado]
+        except KeyError:
+            for agregado in self.agregados_dict.items():
+                if all(palavra in agregado[0] for palavra in title.split()):
+                # Se as palavras pesquisadas estão no titulo do agregdo:
+                    dict_semelhantes[f&#34;Agregado - {agregado[0]}&#34;] = agregado[1]
+                    raise self.NoMatchFound(dict_semelhantes)
+        if not id_agregado:
+            raise self.NoMatchFound()
+        if nome_variavel is None:
+            return id_agregado
+        
+        query = f&#34;{self.server_url}/{id_agregado}/metadados&#34; 
+        json = requests.get(query).json()
+        for variavel in json[&#39;variaveis&#39;]:
+            output_id = f&#34;{id_agregado}-{variavel[&#39;id&#39;]}&#34;
+            if nome_variavel == variavel[&#39;nome&#39;]:
+               return output_id
+            if all(palavra in variavel[&#39;nome&#39;] for palavra in nome_variavel.split()):
+            # Se as palavras pesquisadas estão no titulo da variável:
+                key = f&#34;Variavel - {variavel[&#39;nome&#39;]}&#34;
+                id_ = f&#34;{id_agregado}-{variavel[&#39;id&#39;]}&#34;
+                dict_semelhantes[key] = id_
+        raise self.NoMatchFound(dict_semelhantes)
+    
+    def get_data(self, identifier: str, /, **kwargs):
+        if not identifier.isdigit():
+            identifier = self.get_id(identifier, **kwargs)
+        
+        call_url = f&#34;{self.server_url}/{identifier}&#34;
+        return 0</code></pre>
+</details>
+<div class="desc"><p>Classe para auxiliar com requisições na <a href="https://servicodados.ibge.gov.br/api/docs/agregados?versao=3">API IBGE Agregados</a>.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="apisbr.api.API.API" href="API.html#apisbr.api.API.API">API</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="apisbr.api.AgregadosIBGE.AgregadosIBGE.agregados_dict"><code class="name">var <span class="ident">agregados_dict</span></code></dt>
+<dd>
+<div class="desc"><p>Dicionário com todos os agregados disponíveis [chaves] e seus IDs [valores].</p></div>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="apisbr.api.API.API" href="API.html#apisbr.api.API.API">API</a></b></code>:
+<ul class="hlist">
+<li><code><a title="apisbr.api.API.API.NoMatchFound" href="API.html#apisbr.api.API.API.NoMatchFound">NoMatchFound</a></code></li>
+<li><code><a title="apisbr.api.API.API.date_parser" href="API.html#apisbr.api.API.API.date_parser">date_parser</a></code></li>
+<li><code><a title="apisbr.api.API.API.download_data" href="API.html#apisbr.api.API.API.download_data">download_data</a></code></li>
+<li><code><a title="apisbr.api.API.API.get_data" href="API.html#apisbr.api.API.API.get_data">get_data</a></code></li>
+<li><code><a title="apisbr.api.API.API.get_id" href="API.html#apisbr.api.API.API.get_id">get_id</a></code></li>
+<li><code><a title="apisbr.api.API.API.server_url" href="API.html#apisbr.api.API.API.server_url">server_url</a></code></li>
+<li><code><a title="apisbr.api.API.API.update_dateparser" href="API.html#apisbr.api.API.API.update_dateparser">update_dateparser</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -62,10 +168,24 @@ el.replaceWith(d);
 <ul></ul>
 </div>
 <ul id="index">
-<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<li><h3>Super-module</h3>
 <ul>
-<li><code><a title="apisbr.api" href="api/index.html">apisbr.api</a></code></li>
-<li><code><a title="apisbr.core" href="core/index.html">apisbr.core</a></code></li>
+<li><code><a title="apisbr.api" href="index.html">apisbr.api</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="apisbr.api.AgregadosIBGE.get_agregados_dict" href="#apisbr.api.AgregadosIBGE.get_agregados_dict">get_agregados_dict</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="apisbr.api.AgregadosIBGE.AgregadosIBGE" href="#apisbr.api.AgregadosIBGE.AgregadosIBGE">AgregadosIBGE</a></code></h4>
+<ul class="">
+<li><code><a title="apisbr.api.AgregadosIBGE.AgregadosIBGE.agregados_dict" href="#apisbr.api.AgregadosIBGE.AgregadosIBGE.agregados_dict">agregados_dict</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

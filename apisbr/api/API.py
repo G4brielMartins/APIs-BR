@@ -1,6 +1,8 @@
 from typing import Optional
 from os.path import join
 
+from ..core import DateParser
+
 class API():
     """
     Classe base para implementação das demais APIs.  
@@ -11,11 +13,27 @@ class API():
     NotImplementedError
         Provocado quando métodos essenciais e não implementados são chamados.
     """    
-    DATEPARSER_SETTINGS = {'DATE_ORDER': 'DMY', 'PREFER_DAY_OF_MONTH': 'last', 'PREFER_MONTH_OF_YEAR': 'last'}
-    """Configuração para o dateparser quando datas são lidas das APIs"""
-    
+    date_parser = DateParser()
+    """Parser de datas para uso interno de filtros e leitura de inputs."""
     server_url = ''
     """URL do servidor da API."""
+    
+    def __getitem__(self, title: str) -> str:
+        """
+        Método alternativo de chamar a função self.get_id().  
+        * Suporta apenas o parâmetro [title], ignorando as opções extras de self.get_id()
+
+        Parameters
+        ----------
+        title : str
+            Título a ser procurado na API.
+
+        Returns
+        -------
+        str
+            ID do conjunto de dados encontrado na API.
+        """
+        return self.get_id(title)
     
     def get_id(self, title: str) -> str:
         """
@@ -27,7 +45,8 @@ class API():
     def get_data(self, identifier: str) -> dict[str, bytes]:
         """
         Retorna um dicionário com os nomes dos conjuntos de dados como chaves e seu conteúdo em bytes.  
-        *Implementado nas classes filhas.
+        
+        * Implementado nas classes filhas.
         """
         raise NotImplementedError
     
@@ -54,9 +73,10 @@ class API():
             with open(join(output_folder, name), 'wb') as f:
                 f.write(file_bytes)
     
-    def set_dateparser_settings(self, parser_settings: dict) -> None:
+    def update_dateparser(self, new_settings: dict[str, str]) -> None:
         """
         Atualiza as configurações utilizadas pelo parser de datas.  
+        
         ** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **
 
         Parameters
@@ -65,7 +85,7 @@ class API():
             Dicionário contendo as configurações do parser.  
             São utilizadas as [opções do dataparser](https://dateparser.readthedocs.io/en/latest/settings.html).
         """        
-        self.DATE_SETTINGS = parser_settings
+        self.date_parser.set_settings(new_settings)
     
     class NoMatchFound(Exception):
         """
