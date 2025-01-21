@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 import requests
 
-from . import API
+from ..core import API
 
 class DadosAbertos(API):
     """
@@ -66,7 +66,7 @@ class DadosAbertos(API):
                 elif all(palavra in titulo_conjunto for palavra in titulo_pesquisado.split()):
                 # Se as palavras pesquisadas estão no titulo do conjunto de dados:
                     dict_nomes_semelhantes[conjunto['title']] = conjunto['id']
-        raise self.NoMatchFound(dict_nomes_semelhantes)
+        raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
     def get_data(self, identifier: str, /, period: str = 'all',
                     file_type: str = 'csv') -> dict[str, bytes]:

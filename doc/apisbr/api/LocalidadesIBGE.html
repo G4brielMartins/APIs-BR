@@ -58,12 +58,23 @@ el.replaceWith(d);
     server_url = &#34;https://servicodados.ibge.gov.br/api/v1/localidades&#34;
     
     @classmethod
-    def get_id_dict(cls) -&gt; dict[str, int]:
+    def get_id_dict(cls, key: str = &#39;nome&#39;, /, verifier: bool = True) -&gt; dict[str, int]:  
+        match key:
+            case &#39;nome&#39;:
+                invert = False
+            case &#39;id&#39;:
+                invert = True
+            case _:
+                raise ValueError
         query = cls.server_url + &#34;/municipios&#34;
         id_dict = dict()
         for municipio in requests.get(query).json():
-            id_dict[municipio[&#39;nome&#39;]] = municipio[&#39;id&#39;]
-        return id_dict        </code></pre>
+            uf = municipio[&#39;microrregiao&#39;][&#39;mesorregiao&#39;][&#39;UF&#39;][&#39;sigla&#39;]
+            value = municipio[&#39;id&#39;] if verifier else int(municipio[&#39;id&#39;]/10)
+            id_dict[f&#34;{municipio[&#39;nome&#39;]} - {uf}&#34;] = value
+        if invert:
+            id_dict = invert_dict(id_dict)
+        return id_dict</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Class variables</h3>
@@ -76,7 +87,7 @@ el.replaceWith(d);
 <h3>Static methods</h3>
 <dl>
 <dt id="apisbr.api.LocalidadesIBGE.LocalidadesIBGE.get_id_dict"><code class="name flex">
-<span>def <span class="ident">get_id_dict</span></span>(<span>) ‑> dict[str, int]</span>
+<span>def <span class="ident">get_id_dict</span></span>(<span>key: str = 'nome', /, verifier: bool = True) ‑> dict[str, int]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>

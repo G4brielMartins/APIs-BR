@@ -1,12 +1,25 @@
 import requests
 
+from ..core import invert_dict
+
 class LocalidadesIBGE():
     server_url = "https://servicodados.ibge.gov.br/api/v1/localidades"
     
     @classmethod
-    def get_id_dict(cls) -> dict[str, int]:
+    def get_id_dict(cls, key: str = 'nome', /, verifier: bool = True) -> dict[str, int]:  
+        match key:
+            case 'nome':
+                invert = False
+            case 'id':
+                invert = True
+            case _:
+                raise ValueError
         query = cls.server_url + "/municipios"
         id_dict = dict()
         for municipio in requests.get(query).json():
-            id_dict[municipio['nome']] = municipio['id']
-        return id_dict        
+            uf = municipio['microrregiao']['mesorregiao']['UF']['sigla']
+            value = municipio['id'] if verifier else int(municipio['id']/10)
+            id_dict[f"{municipio['nome']} - {uf}"] = value
+        if invert:
+            id_dict = invert_dict(id_dict)
+        return id_dict

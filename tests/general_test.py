@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
+from apisbr.core import API
 from apisbr.api import *
 
 load_dotenv()

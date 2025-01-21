@@ -2,7 +2,7 @@ from typing import Optional
 
 import requests
 
-from . import API
+from ..core import API
 
 def get_agregados_dict() -> dict[str, str]:
     agregados_dict = dict()
@@ -45,9 +45,9 @@ class AgregadosIBGE(API):
                 if all(palavra in agregado[0] for palavra in title.split()):
                 # Se as palavras pesquisadas estão no titulo do agregdo:
                     dict_semelhantes[f"Agregado - {agregado[0]}"] = agregado[1]
-                    raise self.NoMatchFound(dict_semelhantes)
+                    raise self.NoMatchFoundError(dict_semelhantes)
         if not id_agregado:
-            raise self.NoMatchFound()
+            raise self.NoMatchFoundError()
         if nome_variavel is None:
             return id_agregado
         
@@ -62,7 +62,7 @@ class AgregadosIBGE(API):
                 key = f"Variavel - {variavel['nome']}"
                 id_ = f"{id_agregado}-{variavel['id']}"
                 dict_semelhantes[key] = id_
-        raise self.NoMatchFound(dict_semelhantes)
+        raise self.NoMatchFoundError(dict_semelhantes)
     
     def get_data(self, identifier: str, /, **kwargs):
         if not identifier.isdigit():

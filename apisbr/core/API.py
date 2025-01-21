@@ -1,7 +1,7 @@
 from typing import Optional
 from os.path import join
 
-from ..core import DateParser
+from .DateParser import DateParser
 
 class API():
     """
@@ -87,7 +87,7 @@ class API():
         """        
         self.date_parser.set_settings(new_settings)
     
-    class NoMatchFound(Exception):
+    class NoMatchFoundError(Exception):
         """
         Erro chamado para indicar falha em encontrar correspondência exata com o termo pesquisado.  
         O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pesquisado.

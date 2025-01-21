@@ -115,7 +115,7 @@ el.replaceWith(d);
                 elif all(palavra in titulo_conjunto for palavra in titulo_pesquisado.split()):
                 # Se as palavras pesquisadas estão no titulo do conjunto de dados:
                     dict_nomes_semelhantes[conjunto[&#39;title&#39;]] = conjunto[&#39;id&#39;]
-        raise self.NoMatchFound(dict_nomes_semelhantes)
+        raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
     def get_data(self, identifier: str, /, period: str = &#39;all&#39;,
                     file_type: str = &#39;csv&#39;) -&gt; dict[str, bytes]:
@@ -186,7 +186,7 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
 </dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
-<li><a title="apisbr.api.API.API" href="API.html#apisbr.api.API.API">API</a></li>
+<li><a title="apisbr.core.API.API" href="../core/API.html#apisbr.core.API.API">API</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
@@ -338,7 +338,7 @@ Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link 
             elif all(palavra in titulo_conjunto for palavra in titulo_pesquisado.split()):
             # Se as palavras pesquisadas estão no titulo do conjunto de dados:
                 dict_nomes_semelhantes[conjunto[&#39;title&#39;]] = conjunto[&#39;id&#39;]
-    raise self.NoMatchFound(dict_nomes_semelhantes)</code></pre>
+    raise self.NoMatchFoundError(dict_nomes_semelhantes)</code></pre>
 </details>
 <div class="desc"><p>Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.</p>
 <h2 id="parameters">Parameters</h2>
@@ -365,13 +365,13 @@ Lista conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 </dl>
 <h3>Inherited members</h3>
 <ul class="hlist">
-<li><code><b><a title="apisbr.api.API.API" href="API.html#apisbr.api.API.API">API</a></b></code>:
+<li><code><b><a title="apisbr.core.API.API" href="../core/API.html#apisbr.core.API.API">API</a></b></code>:
 <ul class="hlist">
-<li><code><a title="apisbr.api.API.API.NoMatchFound" href="API.html#apisbr.api.API.API.NoMatchFound">NoMatchFound</a></code></li>
-<li><code><a title="apisbr.api.API.API.date_parser" href="API.html#apisbr.api.API.API.date_parser">date_parser</a></code></li>
-<li><code><a title="apisbr.api.API.API.download_data" href="API.html#apisbr.api.API.API.download_data">download_data</a></code></li>
-<li><code><a title="apisbr.api.API.API.server_url" href="API.html#apisbr.api.API.API.server_url">server_url</a></code></li>
-<li><code><a title="apisbr.api.API.API.update_dateparser" href="API.html#apisbr.api.API.API.update_dateparser">update_dateparser</a></code></li>
+<li><code><a title="apisbr.core.API.API.NoMatchFoundError" href="../core/API.html#apisbr.core.API.API.NoMatchFoundError">NoMatchFoundError</a></code></li>
+<li><code><a title="apisbr.core.API.API.date_parser" href="../core/API.html#apisbr.core.API.API.date_parser">date_parser</a></code></li>
+<li><code><a title="apisbr.core.API.API.download_data" href="../core/API.html#apisbr.core.API.API.download_data">download_data</a></code></li>
+<li><code><a title="apisbr.core.API.API.server_url" href="../core/API.html#apisbr.core.API.API.server_url">server_url</a></code></li>
+<li><code><a title="apisbr.core.API.API.update_dateparser" href="../core/API.html#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
 </ul>
 </li>
 </ul>
