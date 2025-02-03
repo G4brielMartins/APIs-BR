@@ -1,6 +1,6 @@
 [project]
 name = "apis-br"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Python package for simplified requests in brazilian data APIs (e.g. IBGE Agregados)"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -12,11 +12,13 @@ authors = [
 ]
 dependencies = [
     "dateparser>=1.2.0",
+    "pandas>=2.2.3",
     "requests>=2.32.3",
 ]
 
 [dependency-groups]
 dev = [
+    "ipykernel>=6.29.5",
     "pdoc3>=0.11.5",
     "pytest>=8.3.4",
     "python-dotenv>=1.0.1",

@@ -1,6 +1,6 @@
 import requests
 
-from ..core import invert_dict
+from ..utils import invert_dict
 
 class LocalidadesIBGE():
     server_url = "https://servicodados.ibge.gov.br/api/v1/localidades"

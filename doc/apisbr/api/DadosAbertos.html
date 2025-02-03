@@ -57,7 +57,7 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">class DadosAbertos(API):
     &#34;&#34;&#34;
-    Classe para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
+    Wrapper para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
 
     Parameters
     ----------
@@ -66,9 +66,7 @@ el.replaceWith(d);
         Pode ser obtido gratuitamente pelo [site Dados Abertos](https://dados.gov.br/dados/conteudo/como-acessar-a-api-do-portal-de-dados-abertos-com-o-perfil-de-consumidor).
     &#34;&#34;&#34;        
     server_url = &#34;https://dados.gov.br&#34;
-    
     id_regex = re.compile(r&#34;[0-z]{8}-([0-z]{4}-){3}[0-z]{12}&#34;)
-    &#34;&#34;&#34;Regex para identifcar IDs dos conjuntos de dados.&#34;&#34;&#34;
     
     def __init__(self, auth_token: str):
         self.token = auth_token
@@ -112,8 +110,7 @@ el.replaceWith(d);
                 
                 if titulo_conjunto == titulo_pesquisado:
                     return conjunto[&#39;id&#39;]
-                elif all(palavra in titulo_conjunto for palavra in titulo_pesquisado.split()):
-                # Se as palavras pesquisadas estão no titulo do conjunto de dados:
+                elif is_similar_text(titulo_pesquisado, titulo_conjunto):
                     dict_nomes_semelhantes[conjunto[&#39;title&#39;]] = conjunto[&#39;id&#39;]
         raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
@@ -150,19 +147,7 @@ el.replaceWith(d);
         query = self.server_url + f&#34;/dados/api/publico/conjuntos-dados/{identifier}&#34;
         req = requests.get(query, headers=self.header)
         
-        match period.split(&#39;-&#39;):
-            case [&#39;all&#39;]:
-                min_date = dt.datetime.min
-                max_date = dt.datetime.max
-            case [x]:
-                d = self.date_parser.parse(x)
-                min_date = dt.datetime(d.year, 1, 1)
-                max_date = d
-            case [x, y]:
-                min_date = self.date_parser.parse(x)
-                max_date = self.date_parser.parse(y)
-            case _:
-                raise ValueError(&#34;Valor de [period] não pôde ser reconhecido.&#34;)
+        min_date, max_date = parse_period_input(period, self.date_parser)
         
         recursos_dict = dict()
         for recurso in req.json()[&#39;recursos&#39;]:
@@ -172,12 +157,12 @@ el.replaceWith(d);
             if extensao_errada or data_errada:
                 continue
             
-            key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;]}&#34;
+            key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;].lower()}&#34;
             recursos_dict[key] = requests.get(recurso[&#39;link&#39;]).content
             
         return recursos_dict</code></pre>
 </details>
-<div class="desc"><p>Classe para auxiliar com requisões na <a href="https://dados.gov.br/swagger-ui/index.html">API REST do Portal de Dados Abertos</a>.</p>
+<div class="desc"><p>Wrapper para auxiliar com requisões na <a href="https://dados.gov.br/swagger-ui/index.html">API REST do Portal de Dados Abertos</a>.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>auth_token</code></strong> :&ensp;<code>str</code></dt>
@@ -188,13 +173,6 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
 <ul class="hlist">
 <li><a title="apisbr.core.API.API" href="../core/API.html#apisbr.core.API.API">API</a></li>
 </ul>
-<h3>Class variables</h3>
-<dl>
-<dt id="apisbr.api.DadosAbertos.DadosAbertos.id_regex"><code class="name">var <span class="ident">id_regex</span></code></dt>
-<dd>
-<div class="desc"><p>Regex para identifcar IDs dos conjuntos de dados.</p></div>
-</dd>
-</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="apisbr.api.DadosAbertos.DadosAbertos.get_data"><code class="name flex">
@@ -238,19 +216,7 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
     query = self.server_url + f&#34;/dados/api/publico/conjuntos-dados/{identifier}&#34;
     req = requests.get(query, headers=self.header)
     
-    match period.split(&#39;-&#39;):
-        case [&#39;all&#39;]:
-            min_date = dt.datetime.min
-            max_date = dt.datetime.max
-        case [x]:
-            d = self.date_parser.parse(x)
-            min_date = dt.datetime(d.year, 1, 1)
-            max_date = d
-        case [x, y]:
-            min_date = self.date_parser.parse(x)
-            max_date = self.date_parser.parse(y)
-        case _:
-            raise ValueError(&#34;Valor de [period] não pôde ser reconhecido.&#34;)
+    min_date, max_date = parse_period_input(period, self.date_parser)
     
     recursos_dict = dict()
     for recurso in req.json()[&#39;recursos&#39;]:
@@ -260,7 +226,7 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
         if extensao_errada or data_errada:
             continue
         
-        key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;]}&#34;
+        key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;].lower()}&#34;
         recursos_dict[key] = requests.get(recurso[&#39;link&#39;]).content
         
     return recursos_dict</code></pre>
@@ -335,8 +301,7 @@ Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link 
             
             if titulo_conjunto == titulo_pesquisado:
                 return conjunto[&#39;id&#39;]
-            elif all(palavra in titulo_conjunto for palavra in titulo_pesquisado.split()):
-            # Se as palavras pesquisadas estão no titulo do conjunto de dados:
+            elif is_similar_text(titulo_pesquisado, titulo_conjunto):
                 dict_nomes_semelhantes[conjunto[&#39;title&#39;]] = conjunto[&#39;id&#39;]
     raise self.NoMatchFoundError(dict_nomes_semelhantes)</code></pre>
 </details>
@@ -370,6 +335,7 @@ Lista conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <li><code><a title="apisbr.core.API.API.NoMatchFoundError" href="../core/API.html#apisbr.core.API.API.NoMatchFoundError">NoMatchFoundError</a></code></li>
 <li><code><a title="apisbr.core.API.API.date_parser" href="../core/API.html#apisbr.core.API.API.date_parser">date_parser</a></code></li>
 <li><code><a title="apisbr.core.API.API.download_data" href="../core/API.html#apisbr.core.API.API.download_data">download_data</a></code></li>
+<li><code><a title="apisbr.core.API.API.id_regex" href="../core/API.html#apisbr.core.API.API.id_regex">id_regex</a></code></li>
 <li><code><a title="apisbr.core.API.API.server_url" href="../core/API.html#apisbr.core.API.API.server_url">server_url</a></code></li>
 <li><code><a title="apisbr.core.API.API.update_dateparser" href="../core/API.html#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
 </ul>
@@ -396,7 +362,6 @@ Lista conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <ul class="">
 <li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.get_data" href="#apisbr.api.DadosAbertos.DadosAbertos.get_data">get_data</a></code></li>
 <li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.get_id" href="#apisbr.api.DadosAbertos.DadosAbertos.get_id">get_id</a></code></li>
-<li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.id_regex" href="#apisbr.api.DadosAbertos.DadosAbertos.id_regex">id_regex</a></code></li>
 </ul>
 </li>
 </ul>

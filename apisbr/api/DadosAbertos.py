@@ -4,11 +4,11 @@ from urllib.parse import quote
 
 import requests
 
-from ..core import API
+from ..core import API, is_similar_text, parse_period_input
 
 class DadosAbertos(API):
     """
-    Classe para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
+    Wrapper para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
 
     Parameters
     ----------
@@ -17,9 +17,7 @@ class DadosAbertos(API):
         Pode ser obtido gratuitamente pelo [site Dados Abertos](https://dados.gov.br/dados/conteudo/como-acessar-a-api-do-portal-de-dados-abertos-com-o-perfil-de-consumidor).
     """        
     server_url = "https://dados.gov.br"
-    
     id_regex = re.compile(r"[0-z]{8}-([0-z]{4}-){3}[0-z]{12}")
-    """Regex para identifcar IDs dos conjuntos de dados."""
     
     def __init__(self, auth_token: str):
         self.token = auth_token
@@ -63,8 +61,7 @@ class DadosAbertos(API):
                 
                 if titulo_conjunto == titulo_pesquisado:
                     return conjunto['id']
-                elif all(palavra in titulo_conjunto for palavra in titulo_pesquisado.split()):
-                # Se as palavras pesquisadas estão no titulo do conjunto de dados:
+                elif is_similar_text(titulo_pesquisado, titulo_conjunto):
                     dict_nomes_semelhantes[conjunto['title']] = conjunto['id']
         raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
@@ -101,19 +98,7 @@ class DadosAbertos(API):
         query = self.server_url + f"/dados/api/publico/conjuntos-dados/{identifier}"
         req = requests.get(query, headers=self.header)
         
-        match period.split('-'):
-            case ['all']:
-                min_date = dt.datetime.min
-                max_date = dt.datetime.max
-            case [x]:
-                d = self.date_parser.parse(x)
-                min_date = dt.datetime(d.year, 1, 1)
-                max_date = d
-            case [x, y]:
-                min_date = self.date_parser.parse(x)
-                max_date = self.date_parser.parse(y)
-            case _:
-                raise ValueError("Valor de [period] não pôde ser reconhecido.")
+        min_date, max_date = parse_period_input(period, self.date_parser)
         
         recursos_dict = dict()
         for recurso in req.json()['recursos']:
@@ -123,7 +108,7 @@ class DadosAbertos(API):
             if extensao_errada or data_errada:
                 continue
             
-            key = f"{recurso['titulo']}.{recurso['formato']}"
+            key = f"{recurso['titulo']}.{recurso['formato'].lower()}"
             recursos_dict[key] = requests.get(recurso['link']).content
             
         return recursos_dict

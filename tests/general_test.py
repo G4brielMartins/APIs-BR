@@ -13,7 +13,7 @@ API_TOKEN = os.getenv("dados_abertos_token")
 
 test_apis = [
     # (DadosAbertos(API_TOKEN), ("bolsa família", "7ed7c95a-ec15-45ed-a4cd-1c07fe70d45d"))
-    (AgregadosIBGE(), ("1685:Número de unidades locais", "1685-706"))
+    (AgregadosIBGE(), ("1685;Número de unidades locais", "1685-706"))
 ]
 @pytest.mark.parametrize("api,title", test_apis)
 class TestAPI():

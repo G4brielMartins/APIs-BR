@@ -66,8 +66,10 @@ el.replaceWith(d);
     &#34;&#34;&#34;    
     date_parser = DateParser()
     &#34;&#34;&#34;Parser de datas para uso interno de filtros e leitura de inputs.&#34;&#34;&#34;
-    server_url = &#39;&#39;
+    server_url = str()
     &#34;&#34;&#34;URL do servidor da API.&#34;&#34;&#34;
+    id_regex : re.Pattern = &#39;&#39;
+    &#34;&#34;&#34;Regex para identifcar IDs dos conjuntos de dados.&#34;&#34;&#34;
     
     def __getitem__(self, title: str) -&gt; str:
         &#34;&#34;&#34;
@@ -165,6 +167,7 @@ el.replaceWith(d);
 <ul class="hlist">
 <li><a title="apisbr.api.AgregadosIBGE.AgregadosIBGE" href="../api/AgregadosIBGE.html#apisbr.api.AgregadosIBGE.AgregadosIBGE">AgregadosIBGE</a></li>
 <li><a title="apisbr.api.DadosAbertos.DadosAbertos" href="../api/DadosAbertos.html#apisbr.api.DadosAbertos.DadosAbertos">DadosAbertos</a></li>
+<li><a title="apisbr.api.IPEAData.IPEAData" href="../api/IPEAData.html#apisbr.api.IPEAData.IPEAData">IPEAData</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
@@ -176,6 +179,10 @@ O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pe
 <dt id="apisbr.core.API.API.date_parser"><code class="name">var <span class="ident">date_parser</span></code></dt>
 <dd>
 <div class="desc"><p>Parser de datas para uso interno de filtros e leitura de inputs.</p></div>
+</dd>
+<dt id="apisbr.core.API.API.id_regex"><code class="name">var <span class="ident">id_regex</span> : re.Pattern</code></dt>
+<dd>
+<div class="desc"><p>Regex para identifcar IDs dos conjuntos de dados.</p></div>
 </dd>
 <dt id="apisbr.core.API.API.server_url"><code class="name">var <span class="ident">server_url</span></code></dt>
 <dd>
@@ -326,6 +333,7 @@ São utilizadas as <a href="https://dateparser.readthedocs.io/en/latest/settings
 <li><code><a title="apisbr.core.API.API.download_data" href="#apisbr.core.API.API.download_data">download_data</a></code></li>
 <li><code><a title="apisbr.core.API.API.get_data" href="#apisbr.core.API.API.get_data">get_data</a></code></li>
 <li><code><a title="apisbr.core.API.API.get_id" href="#apisbr.core.API.API.get_id">get_id</a></code></li>
+<li><code><a title="apisbr.core.API.API.id_regex" href="#apisbr.core.API.API.id_regex">id_regex</a></code></li>
 <li><code><a title="apisbr.core.API.API.server_url" href="#apisbr.core.API.API.server_url">server_url</a></code></li>
 <li><code><a title="apisbr.core.API.API.update_dateparser" href="#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
 </ul>

@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 from os.path import join
 
@@ -15,8 +16,10 @@ class API():
     """    
     date_parser = DateParser()
     """Parser de datas para uso interno de filtros e leitura de inputs."""
-    server_url = ''
+    server_url = str()
     """URL do servidor da API."""
+    id_regex : re.Pattern = ''
+    """Regex para identifcar IDs dos conjuntos de dados."""
     
     def __getitem__(self, title: str) -> str:
         """
