@@ -57,7 +57,7 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">class DadosAbertos(API):
     &#34;&#34;&#34;
-    Wrapper para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
+    Wrapper para executar requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
 
     Parameters
     ----------
@@ -72,7 +72,7 @@ el.replaceWith(d);
         self.token = auth_token
         self.header = {&#39;chave-api-dados-abertos&#39;: auth_token}
     
-    def get_id(self, title: str, /, depth: int = 10) -&gt; str:
+    def get_id(self, title: str, *, depth: int = 10) -&gt; str:
         &#34;&#34;&#34;
         Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
 
@@ -94,7 +94,7 @@ el.replaceWith(d);
         ------
         NoMatchFound
             Erro de ausência de correspondência.  
-            Lista conjuntos de dados com nomes semelhantes ao pesquisado.
+            Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
         &#34;&#34;&#34;
         call_url = self.server_url + &#34;/dados/api/publico/conjuntos-dados&#34;
         call_parameters = &#34;?isPrivado=false&amp;nomeConjuntoDados=&#34; + quote(title)
@@ -114,8 +114,8 @@ el.replaceWith(d);
                     dict_nomes_semelhantes[conjunto[&#39;title&#39;]] = conjunto[&#39;id&#39;]
         raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
-    def get_data(self, identifier: str, /, period: str = &#39;all&#39;,
-                    file_type: str = &#39;csv&#39;) -&gt; dict[str, bytes]:
+    def list_recursos(self, identifier: str, period: str = &#39;all&#39;,
+                    file_type: str = &#39;csv&#39;) -&gt; dict[str, str]:
         &#34;&#34;&#34;
         Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
 
@@ -137,9 +137,8 @@ el.replaceWith(d);
 
         Returns
         -------
-        dict[str, list[str, str]]
-            Dicionário com os nomes dos recuros encontrados como chaves.
-            Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link de download no índice 1.
+        dict[str, str]
+            Dicionário com os nomes dos recuros encontrados como chaves e seus links.
         &#34;&#34;&#34;
         if not self.id_regex.fullmatch(identifier):
             identifier = self.get_id(identifier)
@@ -158,11 +157,63 @@ el.replaceWith(d);
                 continue
             
             key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;].lower()}&#34;
-            recursos_dict[key] = requests.get(recurso[&#39;link&#39;]).content
+            recursos_dict[key] = recurso[&#39;link&#39;]
             
-        return recursos_dict</code></pre>
+        return recursos_dict
+    
+    def get_data(self, identifier: str, period: str = &#39;all&#39;,
+                 **kwargs) -&gt; pd.DataFrame|dict[str, pd.DataFrame]:
+        &#34;&#34;&#34;
+        Importa os dados da API como um data frame.
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        period : str, optional
+            Filtro de período em que os recursos foram publicados.  
+            *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+            Exemplos de uso:  
+            - &#39;2021&#39; : procura por recursos publicados em 2021  
+            - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
+            - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+        **kwargs :
+            Configurações extras para a função [pd.read_csv()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).
+
+        Returns
+        -------
+        pd.DataFrame|dict[str, pd.DataFrame]
+            Data frame do conjunto de dados selecionado.  
+            Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.
+        &#34;&#34;&#34;        
+        recursos = self.list_recursos(identifier, period=period, file_type=&#39;csv&#39;)
+        if len(recursos) == 1:
+            return pd.read_csv(*[recursos.values()], **kwargs)
+        
+        dfs = dict()
+        for nome, link in recursos.items():
+            dfs[nome] = pd.read_csv(link, **kwargs)
+        return dfs
+    
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
+        &#34;&#34;&#34;
+        Faz o download dos recursos encontrados em [output_folder].
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        output_folder : str
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs :
+            Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.
+        &#34;&#34;&#34;
+        data = dict()
+        for nome, link in self.list_recursos(identifier, **kwargs).items():
+            data[nome] = requests.get(link).content
+        super().download_data(data, output_folder)</code></pre>
 </details>
-<div class="desc"><p>Wrapper para auxiliar com requisões na <a href="https://dados.gov.br/swagger-ui/index.html">API REST do Portal de Dados Abertos</a>.</p>
+<div class="desc"><p>Wrapper para executar requisões na <a href="https://dados.gov.br/swagger-ui/index.html">API REST do Portal de Dados Abertos</a>.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>auth_token</code></strong> :&ensp;<code>str</code></dt>
@@ -175,95 +226,116 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
 </ul>
 <h3>Methods</h3>
 <dl>
-<dt id="apisbr.api.DadosAbertos.DadosAbertos.get_data"><code class="name flex">
-<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str, /, period: str = 'all', file_type: str = 'csv') ‑> dict[str, bytes]</span>
+<dt id="apisbr.api.DadosAbertos.DadosAbertos.download_data"><code class="name flex">
+<span>def <span class="ident">download_data</span></span>(<span>self, identifier: str, output_folder: str, **kwargs) ‑> None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_data(self, identifier: str, /, period: str = &#39;all&#39;,
-                file_type: str = &#39;csv&#39;) -&gt; dict[str, bytes]:
+<pre><code class="python">def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
     &#34;&#34;&#34;
-    Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
+    Faz o download dos recursos encontrados em [output_folder].
+
+    Parameters
+    ----------
+    identifier : str
+        Título exato ou ID do conjunto de dados de interesse.
+    output_folder : str
+        Caminho da pasta onde os dados devem ser salvos.
+    **kwargs :
+        Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.
+    &#34;&#34;&#34;
+    data = dict()
+    for nome, link in self.list_recursos(identifier, **kwargs).items():
+        data[nome] = requests.get(link).content
+    super().download_data(data, output_folder)</code></pre>
+</details>
+<div class="desc"><p>Faz o download dos recursos encontrados em [output_folder].</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
+<dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
+<dd>Caminho da pasta onde os dados devem ser salvos.</dd>
+</dl>
+<p>**kwargs :
+Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.</p></div>
+</dd>
+<dt id="apisbr.api.DadosAbertos.DadosAbertos.get_data"><code class="name flex">
+<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str, period: str = 'all', **kwargs) ‑> pandas.core.frame.DataFrame | dict[str, pandas.core.frame.DataFrame]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_data(self, identifier: str, period: str = &#39;all&#39;,
+             **kwargs) -&gt; pd.DataFrame|dict[str, pd.DataFrame]:
+    &#34;&#34;&#34;
+    Importa os dados da API como um data frame.
 
     Parameters
     ----------
     identifier : str
         Título exato ou ID do conjunto de dados de interesse.
     period : str, optional
-        Filtro de período em que os recursos foram publicados.
+        Filtro de período em que os recursos foram publicados.  
         *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
         Exemplos de uso:  
         - &#39;2021&#39; : procura por recursos publicados em 2021  
         - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
-        - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)  
-    file_type : str, optional
-        Filtro de extensão dos arquivos pesquisados.  
-        Se &#39;all&#39;, procura por qualquer recurso, sem filtrar tipo de aquivo.  
-        Por padrão, procura por &#39;csv&#39;.  
+        - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+    **kwargs :
+        Configurações extras para a função [pd.read_csv()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).
 
     Returns
     -------
-    dict[str, list[str, str]]
-        Dicionário com os nomes dos recuros encontrados como chaves.
-        Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link de download no índice 1.
-    &#34;&#34;&#34;
-    if not self.id_regex.fullmatch(identifier):
-        identifier = self.get_id(identifier)
+    pd.DataFrame|dict[str, pd.DataFrame]
+        Data frame do conjunto de dados selecionado.  
+        Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.
+    &#34;&#34;&#34;        
+    recursos = self.list_recursos(identifier, period=period, file_type=&#39;csv&#39;)
+    if len(recursos) == 1:
+        return pd.read_csv(*[recursos.values()], **kwargs)
     
-    query = self.server_url + f&#34;/dados/api/publico/conjuntos-dados/{identifier}&#34;
-    req = requests.get(query, headers=self.header)
-    
-    min_date, max_date = parse_period_input(period, self.date_parser)
-    
-    recursos_dict = dict()
-    for recurso in req.json()[&#39;recursos&#39;]:
-        extensao_errada = file_type not in [recurso[&#39;formato&#39;].lower(), &#39;all&#39;]
-        data_errada = not (min_date &lt;= self.date_parser.parse(recurso[&#39;dataCatalogacao&#39;]) &lt;= max_date)
-        
-        if extensao_errada or data_errada:
-            continue
-        
-        key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;].lower()}&#34;
-        recursos_dict[key] = requests.get(recurso[&#39;link&#39;]).content
-        
-    return recursos_dict</code></pre>
+    dfs = dict()
+    for nome, link in recursos.items():
+        dfs[nome] = pd.read_csv(link, **kwargs)
+    return dfs</code></pre>
 </details>
-<div class="desc"><p>Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.</p>
+<div class="desc"><p>Importa os dados da API como um data frame.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
 <dd>Título exato ou ID do conjunto de dados de interesse.</dd>
 <dt><strong><code>period</code></strong> :&ensp;<code>str</code>, optional</dt>
-<dd>Filtro de período em que os recursos foram publicados.
+<dd>Filtro de período em que os recursos foram publicados.<br>
 *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.<br>
 Exemplos de uso:<br>
 - '2021' : procura por recursos publicados em 2021<br>
 - '2019-2021' : procura por recursos publicados entre 2019 e 2021<br>
 - 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)</dd>
-<dt><strong><code>file_type</code></strong> :&ensp;<code>str</code>, optional</dt>
-<dd>Filtro de extensão dos arquivos pesquisados.<br>
-Se 'all', procura por qualquer recurso, sem filtrar tipo de aquivo.<br>
-Por padrão, procura por 'csv'.</dd>
 </dl>
+<p>**kwargs :
+Configurações extras para a função <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html">pd.read_csv()</a>.</p>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>dict[str, list[str, str]]</code></dt>
-<dd>Dicionário com os nomes dos recuros encontrados como chaves.
-Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link de download no índice 1.</dd>
+<dt><code>pd.DataFrame|dict[str, pd.DataFrame]</code></dt>
+<dd>Data frame do conjunto de dados selecionado.<br>
+Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.</dd>
 </dl></div>
 </dd>
 <dt id="apisbr.api.DadosAbertos.DadosAbertos.get_id"><code class="name flex">
-<span>def <span class="ident">get_id</span></span>(<span>self, title: str, /, depth: int = 10) ‑> str</span>
+<span>def <span class="ident">get_id</span></span>(<span>self, title: str, *, depth: int = 10) ‑> str</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_id(self, title: str, /, depth: int = 10) -&gt; str:
+<pre><code class="python">def get_id(self, title: str, *, depth: int = 10) -&gt; str:
     &#34;&#34;&#34;
     Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
 
@@ -285,7 +357,7 @@ Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link 
     ------
     NoMatchFound
         Erro de ausência de correspondência.  
-        Lista conjuntos de dados com nomes semelhantes ao pesquisado.
+        Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
     &#34;&#34;&#34;
     call_url = self.server_url + &#34;/dados/api/publico/conjuntos-dados&#34;
     call_parameters = &#34;?isPrivado=false&amp;nomeConjuntoDados=&#34; + quote(title)
@@ -324,7 +396,85 @@ Valor padrão: 10.</dd>
 <dl>
 <dt><code>NoMatchFound</code></dt>
 <dd>Erro de ausência de correspondência.<br>
-Lista conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
+Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
+</dl></div>
+</dd>
+<dt id="apisbr.api.DadosAbertos.DadosAbertos.list_recursos"><code class="name flex">
+<span>def <span class="ident">list_recursos</span></span>(<span>self, identifier: str, period: str = 'all', file_type: str = 'csv') ‑> dict[str, str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_recursos(self, identifier: str, period: str = &#39;all&#39;,
+                file_type: str = &#39;csv&#39;) -&gt; dict[str, str]:
+    &#34;&#34;&#34;
+    Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
+
+    Parameters
+    ----------
+    identifier : str
+        Título exato ou ID do conjunto de dados de interesse.
+    period : str, optional
+        Filtro de período em que os recursos foram publicados.
+        *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+        Exemplos de uso:  
+        - &#39;2021&#39; : procura por recursos publicados em 2021  
+        - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
+        - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)  
+    file_type : str, optional
+        Filtro de extensão dos arquivos pesquisados.  
+        Se &#39;all&#39;, procura por qualquer recurso, sem filtrar tipo de aquivo.  
+        Por padrão, procura por &#39;csv&#39;.  
+
+    Returns
+    -------
+    dict[str, str]
+        Dicionário com os nomes dos recuros encontrados como chaves e seus links.
+    &#34;&#34;&#34;
+    if not self.id_regex.fullmatch(identifier):
+        identifier = self.get_id(identifier)
+    
+    query = self.server_url + f&#34;/dados/api/publico/conjuntos-dados/{identifier}&#34;
+    req = requests.get(query, headers=self.header)
+    
+    min_date, max_date = parse_period_input(period, self.date_parser)
+    
+    recursos_dict = dict()
+    for recurso in req.json()[&#39;recursos&#39;]:
+        extensao_errada = file_type not in [recurso[&#39;formato&#39;].lower(), &#39;all&#39;]
+        data_errada = not (min_date &lt;= self.date_parser.parse(recurso[&#39;dataCatalogacao&#39;]) &lt;= max_date)
+        
+        if extensao_errada or data_errada:
+            continue
+        
+        key = f&#34;{recurso[&#39;titulo&#39;]}.{recurso[&#39;formato&#39;].lower()}&#34;
+        recursos_dict[key] = recurso[&#39;link&#39;]
+        
+    return recursos_dict</code></pre>
+</details>
+<div class="desc"><p>Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
+<dt><strong><code>period</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Filtro de período em que os recursos foram publicados.
+*Aceita qualquer formato de data compatível com o dateparser, no formato DMY.<br>
+Exemplos de uso:<br>
+- '2021' : procura por recursos publicados em 2021<br>
+- '2019-2021' : procura por recursos publicados entre 2019 e 2021<br>
+- 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)</dd>
+<dt><strong><code>file_type</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Filtro de extensão dos arquivos pesquisados.<br>
+Se 'all', procura por qualquer recurso, sem filtrar tipo de aquivo.<br>
+Por padrão, procura por 'csv'.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict[str, str]</code></dt>
+<dd>Dicionário com os nomes dos recuros encontrados como chaves e seus links.</dd>
 </dl></div>
 </dd>
 </dl>
@@ -334,7 +484,6 @@ Lista conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <ul class="hlist">
 <li><code><a title="apisbr.core.API.API.NoMatchFoundError" href="../core/API.html#apisbr.core.API.API.NoMatchFoundError">NoMatchFoundError</a></code></li>
 <li><code><a title="apisbr.core.API.API.date_parser" href="../core/API.html#apisbr.core.API.API.date_parser">date_parser</a></code></li>
-<li><code><a title="apisbr.core.API.API.download_data" href="../core/API.html#apisbr.core.API.API.download_data">download_data</a></code></li>
 <li><code><a title="apisbr.core.API.API.id_regex" href="../core/API.html#apisbr.core.API.API.id_regex">id_regex</a></code></li>
 <li><code><a title="apisbr.core.API.API.server_url" href="../core/API.html#apisbr.core.API.API.server_url">server_url</a></code></li>
 <li><code><a title="apisbr.core.API.API.update_dateparser" href="../core/API.html#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
@@ -360,8 +509,10 @@ Lista conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <li>
 <h4><code><a title="apisbr.api.DadosAbertos.DadosAbertos" href="#apisbr.api.DadosAbertos.DadosAbertos">DadosAbertos</a></code></h4>
 <ul class="">
+<li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.download_data" href="#apisbr.api.DadosAbertos.DadosAbertos.download_data">download_data</a></code></li>
 <li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.get_data" href="#apisbr.api.DadosAbertos.DadosAbertos.get_data">get_data</a></code></li>
 <li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.get_id" href="#apisbr.api.DadosAbertos.DadosAbertos.get_id">get_id</a></code></li>
+<li><code><a title="apisbr.api.DadosAbertos.DadosAbertos.list_recursos" href="#apisbr.api.DadosAbertos.DadosAbertos.list_recursos">list_recursos</a></code></li>
 </ul>
 </li>
 </ul>

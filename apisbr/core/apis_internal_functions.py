@@ -1,6 +1,7 @@
 import datetime as dt
 
 from .DateParser import DateParser
+from ..utils import remove_accents
 
 type MinDate = dt.datetime
 type MaxDate = dt.datetime
@@ -21,8 +22,8 @@ def is_similar_text(target: str, current: str) -> bool:
     bool
         Retorna verdadeiro se todas as palavras de [target] estão em [current].
     """
-    target = target.lower()
-    current = current.lower()
+    target = remove_accents(target).lower()
+    current = remove_accents(current).lower()
     return all(palavra in current for palavra in target.split())
 
 

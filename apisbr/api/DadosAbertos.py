@@ -3,12 +3,13 @@ import datetime as dt
 from urllib.parse import quote
 
 import requests
+import pandas as pd
 
 from ..core import API, is_similar_text, parse_period_input
 
 class DadosAbertos(API):
     """
-    Wrapper para auxiliar com requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
+    Wrapper para executar requisões na [API REST do Portal de Dados Abertos](https://dados.gov.br/swagger-ui/index.html).
 
     Parameters
     ----------
@@ -23,7 +24,7 @@ class DadosAbertos(API):
         self.token = auth_token
         self.header = {'chave-api-dados-abertos': auth_token}
     
-    def get_id(self, title: str, /, depth: int = 10) -> str:
+    def get_id(self, title: str, *, depth: int = 10) -> str:
         """
         Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
 
@@ -45,7 +46,7 @@ class DadosAbertos(API):
         ------
         NoMatchFound
             Erro de ausência de correspondência.  
-            Lista conjuntos de dados com nomes semelhantes ao pesquisado.
+            Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
         """
         call_url = self.server_url + "/dados/api/publico/conjuntos-dados"
         call_parameters = "?isPrivado=false&nomeConjuntoDados=" + quote(title)
@@ -65,8 +66,8 @@ class DadosAbertos(API):
                     dict_nomes_semelhantes[conjunto['title']] = conjunto['id']
         raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
-    def get_data(self, identifier: str, /, period: str = 'all',
-                    file_type: str = 'csv') -> dict[str, bytes]:
+    def list_recursos(self, identifier: str, period: str = 'all',
+                    file_type: str = 'csv') -> dict[str, str]:
         """
         Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
 
@@ -88,9 +89,8 @@ class DadosAbertos(API):
 
         Returns
         -------
-        dict[str, list[str, str]]
-            Dicionário com os nomes dos recuros encontrados como chaves.
-            Os valores são listas, contendo a extensão do arquivo no índice 0 e seu link de download no índice 1.
+        dict[str, str]
+            Dicionário com os nomes dos recuros encontrados como chaves e seus links.
         """
         if not self.id_regex.fullmatch(identifier):
             identifier = self.get_id(identifier)
@@ -109,6 +109,58 @@ class DadosAbertos(API):
                 continue
             
             key = f"{recurso['titulo']}.{recurso['formato'].lower()}"
-            recursos_dict[key] = requests.get(recurso['link']).content
+            recursos_dict[key] = recurso['link']
             
         return recursos_dict
+    
+    def get_data(self, identifier: str, period: str = 'all',
+                 **kwargs) -> pd.DataFrame|dict[str, pd.DataFrame]:
+        """
+        Importa os dados da API como um data frame.
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        period : str, optional
+            Filtro de período em que os recursos foram publicados.  
+            *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+            Exemplos de uso:  
+            - '2021' : procura por recursos publicados em 2021  
+            - '2019-2021' : procura por recursos publicados entre 2019 e 2021  
+            - 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+        **kwargs :
+            Configurações extras para a função [pd.read_csv()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).
+
+        Returns
+        -------
+        pd.DataFrame|dict[str, pd.DataFrame]
+            Data frame do conjunto de dados selecionado.  
+            Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.
+        """        
+        recursos = self.list_recursos(identifier, period=period, file_type='csv')
+        if len(recursos) == 1:
+            return pd.read_csv(*[recursos.values()], **kwargs)
+        
+        dfs = dict()
+        for nome, link in recursos.items():
+            dfs[nome] = pd.read_csv(link, **kwargs)
+        return dfs
+    
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
+        """
+        Faz o download dos recursos encontrados em [output_folder].
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        output_folder : str
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs :
+            Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.
+        """
+        data = dict()
+        for nome, link in self.list_recursos(identifier, **kwargs).items():
+            data[nome] = requests.get(link).content
+        super().download_data(data, output_folder)

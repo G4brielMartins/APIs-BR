@@ -42,43 +42,6 @@ el.replaceWith(d);
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-functions">Functions</h2>
-<dl>
-<dt id="apisbr.api.IPEAData.get_series_dict"><code class="name flex">
-<span>def <span class="ident">get_series_dict</span></span>(<span>) ‑> dict[str, str]</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_series_dict() -&gt; dict[str, str]:
-    series_dict = dict()
-    query = &#34;http://www.ipeadata.gov.br/api/odata4/Metadados&#34;
-    for serie in requests.get(query).json()[&#39;value&#39;]:
-        series_dict[serie[&#39;SERNOME&#39;]] = serie[&#39;SERCODIGO&#39;]
-    return series_dict</code></pre>
-</details>
-<div class="desc"></div>
-</dd>
-<dt id="apisbr.api.IPEAData.get_territorios_dict"><code class="name flex">
-<span>def <span class="ident">get_territorios_dict</span></span>(<span>) ‑> dict[str, str]</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_territorios_dict() -&gt; dict[str, str]:
-    territorios_dict = dict()
-    query = &#34;http://www.ipeadata.gov.br/api/odata4/Territorios&#34;
-    for territorio in requests.get(query).json()[&#39;value&#39;]:
-        territorios_dict[territorio[&#39;TERCODIGO&#39;]] = territorio[&#39;TERNOME&#39;]
-    return territorios_dict</code></pre>
-</details>
-<div class="desc"></div>
-</dd>
-</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -92,14 +55,36 @@ el.replaceWith(d);
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class IPEAData(API):
+    &#34;&#34;&#34;
+    Wrapper para executar requisições na API do [IPEAData](http://www.ipeadata.gov.br/)
+    &#34;&#34;&#34;    
     server_url = &#34;http://www.ipeadata.gov.br/api/odata4/&#34;
-    id_regex = re.compile(r&#34;([0-Z]|_)*&#34;)
-    series_dict = get_series_dict()
+    id_regex = re.compile(r&#34;[0-Z]+(_[0-Z]+)+&#34;)
+    series_dict = _get_series_dict()
     &#34;&#34;&#34;Dicionário com as séries de dados disponíveis (chaves) e seus IDs (valores).&#34;&#34;&#34;
-    territorios_dict = get_territorios_dict()
+    territorios_dict = _get_territorios_dict()
     &#34;&#34;&#34;Dicionário com os territórios disponíveis (valores) e seus IDs (chaves)&#34;&#34;&#34; 
     
-    def get_id(self, title) -&gt; str:
+    def get_id(self, title: str) -&gt; str:
+        &#34;&#34;&#34;
+        Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
+
+        Parameters
+        ----------
+        title : str
+            Título a ser procurado.
+
+        Returns
+        -------
+        str
+            ID do conjunto de dados pesquisado.
+
+        Raises
+        ------
+        self.NoMatchFoundError
+            Erro de ausência de correspondência.  
+            Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
+        &#34;&#34;&#34;        
         try:
             return self.series_dict[title]
         except KeyError:
@@ -109,7 +94,30 @@ el.replaceWith(d);
                     dict_semelhantes[nome_serie] = id_serie
             raise self.NoMatchFoundError(dict_semelhantes)
     
-    def get_df(self, identifier, /, period: str = &#39;all&#39;, level: str = None) -&gt; pd.DataFrame:
+    def get_data(self, identifier: str, level: str = None,
+                 period: str = &#39;all&#39;) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;
+        Importa os dados da API como um data frame.
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        period : str, optional
+            Filtro de período em que os recursos foram publicados.  
+            *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+            Exemplos de uso:  
+            - &#39;2021&#39; : procura por recursos publicados em 2021  
+            - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
+            - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+        level : str, optional
+            Agrupa os dados pelo [level] de agregação.
+
+        Returns
+        -------
+        pd.DataFrame
+            Data frame do conjunto de dados selecionado.
+        &#34;&#34;&#34;        
         if not self.id_regex.fullmatch(identifier):
             identifier = self.get_id(identifier)
         
@@ -139,15 +147,27 @@ el.replaceWith(d);
             df = df[df[&#39;Nivel&#39;] == level.title()]
             df = df.pivot(columns=&#39;Data&#39;, index=&#39;Territorio&#39;, values=&#39;Valor&#39;)
 
-        return df</code></pre>
+        return df
+    
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
+        &#34;&#34;&#34;
+        Faz o download da tabela encontrada em [output_folder].
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        output_folder : str
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs :
+            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        &#34;&#34;&#34;        
+        df = self.get_data(identifier, **kwargs)
+        file_name = format_to_path(identifier) + &#39;.csv&#39;
+        path = join_path(output_folder, file_name)
+        df.to_csv(path)</code></pre>
 </details>
-<div class="desc"><p>Classe base para implementação das demais APIs.<br>
-** APRESENTA MÉTODOS QUE DEVEM SER IMPLEMENTADOS PARA FUNCIONAR CORRETAMENTE **</p>
-<h2 id="raises">Raises</h2>
-<dl>
-<dt><code>NotImplementedError</code></dt>
-<dd>Provocado quando métodos essenciais e não implementados são chamados.</dd>
-</dl></div>
+<div class="desc"><p>Wrapper para executar requisições na API do <a href="http://www.ipeadata.gov.br/">IPEAData</a></p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="apisbr.core.API.API" href="../core/API.html#apisbr.core.API.API">API</a></li>
@@ -165,15 +185,75 @@ el.replaceWith(d);
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="apisbr.api.IPEAData.IPEAData.get_df"><code class="name flex">
-<span>def <span class="ident">get_df</span></span>(<span>self, identifier, /, period: str = 'all', level: str = None) ‑> pandas.core.frame.DataFrame</span>
+<dt id="apisbr.api.IPEAData.IPEAData.download_data"><code class="name flex">
+<span>def <span class="ident">download_data</span></span>(<span>self, identifier: str, output_folder: str, **kwargs) ‑> None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_df(self, identifier, /, period: str = &#39;all&#39;, level: str = None) -&gt; pd.DataFrame:
+<pre><code class="python">def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
+    &#34;&#34;&#34;
+    Faz o download da tabela encontrada em [output_folder].
+
+    Parameters
+    ----------
+    identifier : str
+        Título exato ou ID do conjunto de dados de interesse.
+    output_folder : str
+        Caminho da pasta onde os dados devem ser salvos.
+    **kwargs :
+        Parâmetros passados à get_data() para filtrar os dados encontrados.
+    &#34;&#34;&#34;        
+    df = self.get_data(identifier, **kwargs)
+    file_name = format_to_path(identifier) + &#39;.csv&#39;
+    path = join_path(output_folder, file_name)
+    df.to_csv(path)</code></pre>
+</details>
+<div class="desc"><p>Faz o download da tabela encontrada em [output_folder].</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
+<dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
+<dd>Caminho da pasta onde os dados devem ser salvos.</dd>
+</dl>
+<p>**kwargs :
+Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
+</dd>
+<dt id="apisbr.api.IPEAData.IPEAData.get_data"><code class="name flex">
+<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str, level: str = None, period: str = 'all') ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_data(self, identifier: str, level: str = None,
+             period: str = &#39;all&#39;) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;
+    Importa os dados da API como um data frame.
+
+    Parameters
+    ----------
+    identifier : str
+        Título exato ou ID do conjunto de dados de interesse.
+    period : str, optional
+        Filtro de período em que os recursos foram publicados.  
+        *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+        Exemplos de uso:  
+        - &#39;2021&#39; : procura por recursos publicados em 2021  
+        - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
+        - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+    level : str, optional
+        Agrupa os dados pelo [level] de agregação.
+
+    Returns
+    -------
+    pd.DataFrame
+        Data frame do conjunto de dados selecionado.
+    &#34;&#34;&#34;        
     if not self.id_regex.fullmatch(identifier):
         identifier = self.get_id(identifier)
     
@@ -205,7 +285,81 @@ el.replaceWith(d);
 
     return df</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Importa os dados da API como um data frame.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
+<dt><strong><code>period</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Filtro de período em que os recursos foram publicados.<br>
+*Aceita qualquer formato de data compatível com o dateparser, no formato DMY.<br>
+Exemplos de uso:<br>
+- '2021' : procura por recursos publicados em 2021<br>
+- '2019-2021' : procura por recursos publicados entre 2019 e 2021<br>
+- 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)</dd>
+<dt><strong><code>level</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Agrupa os dados pelo [level] de agregação.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>Data frame do conjunto de dados selecionado.</dd>
+</dl></div>
+</dd>
+<dt id="apisbr.api.IPEAData.IPEAData.get_id"><code class="name flex">
+<span>def <span class="ident">get_id</span></span>(<span>self, title: str) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_id(self, title: str) -&gt; str:
+    &#34;&#34;&#34;
+    Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
+
+    Parameters
+    ----------
+    title : str
+        Título a ser procurado.
+
+    Returns
+    -------
+    str
+        ID do conjunto de dados pesquisado.
+
+    Raises
+    ------
+    self.NoMatchFoundError
+        Erro de ausência de correspondência.  
+        Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
+    &#34;&#34;&#34;        
+    try:
+        return self.series_dict[title]
+    except KeyError:
+        dict_semelhantes = dict()
+        for nome_serie, id_serie in self.series_dict.items():
+            if is_similar_text(title, nome_serie):
+                dict_semelhantes[nome_serie] = id_serie
+        raise self.NoMatchFoundError(dict_semelhantes)</code></pre>
+</details>
+<div class="desc"><p>Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>title</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título a ser procurado.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>str</code></dt>
+<dd>ID do conjunto de dados pesquisado.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>self.NoMatchFoundError</code></dt>
+<dd>Erro de ausência de correspondência.<br>
+Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
+</dl></div>
 </dd>
 </dl>
 <h3>Inherited members</h3>
@@ -214,9 +368,6 @@ el.replaceWith(d);
 <ul class="hlist">
 <li><code><a title="apisbr.core.API.API.NoMatchFoundError" href="../core/API.html#apisbr.core.API.API.NoMatchFoundError">NoMatchFoundError</a></code></li>
 <li><code><a title="apisbr.core.API.API.date_parser" href="../core/API.html#apisbr.core.API.API.date_parser">date_parser</a></code></li>
-<li><code><a title="apisbr.core.API.API.download_data" href="../core/API.html#apisbr.core.API.API.download_data">download_data</a></code></li>
-<li><code><a title="apisbr.core.API.API.get_data" href="../core/API.html#apisbr.core.API.API.get_data">get_data</a></code></li>
-<li><code><a title="apisbr.core.API.API.get_id" href="../core/API.html#apisbr.core.API.API.get_id">get_id</a></code></li>
 <li><code><a title="apisbr.core.API.API.id_regex" href="../core/API.html#apisbr.core.API.API.id_regex">id_regex</a></code></li>
 <li><code><a title="apisbr.core.API.API.server_url" href="../core/API.html#apisbr.core.API.API.server_url">server_url</a></code></li>
 <li><code><a title="apisbr.core.API.API.update_dateparser" href="../core/API.html#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
@@ -237,18 +388,14 @@ el.replaceWith(d);
 <li><code><a title="apisbr.api" href="index.html">apisbr.api</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
-<li><code><a title="apisbr.api.IPEAData.get_series_dict" href="#apisbr.api.IPEAData.get_series_dict">get_series_dict</a></code></li>
-<li><code><a title="apisbr.api.IPEAData.get_territorios_dict" href="#apisbr.api.IPEAData.get_territorios_dict">get_territorios_dict</a></code></li>
-</ul>
-</li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
 <h4><code><a title="apisbr.api.IPEAData.IPEAData" href="#apisbr.api.IPEAData.IPEAData">IPEAData</a></code></h4>
 <ul class="">
-<li><code><a title="apisbr.api.IPEAData.IPEAData.get_df" href="#apisbr.api.IPEAData.IPEAData.get_df">get_df</a></code></li>
+<li><code><a title="apisbr.api.IPEAData.IPEAData.download_data" href="#apisbr.api.IPEAData.IPEAData.download_data">download_data</a></code></li>
+<li><code><a title="apisbr.api.IPEAData.IPEAData.get_data" href="#apisbr.api.IPEAData.IPEAData.get_data">get_data</a></code></li>
+<li><code><a title="apisbr.api.IPEAData.IPEAData.get_id" href="#apisbr.api.IPEAData.IPEAData.get_id">get_id</a></code></li>
 <li><code><a title="apisbr.api.IPEAData.IPEAData.series_dict" href="#apisbr.api.IPEAData.IPEAData.series_dict">series_dict</a></code></li>
 <li><code><a title="apisbr.api.IPEAData.IPEAData.territorios_dict" href="#apisbr.api.IPEAData.IPEAData.territorios_dict">territorios_dict</a></code></li>
 </ul>

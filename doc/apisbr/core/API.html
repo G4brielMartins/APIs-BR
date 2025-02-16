@@ -95,33 +95,25 @@ el.replaceWith(d);
         &#34;&#34;&#34;
         raise NotImplementedError
     
-    def get_data(self, identifier: str) -&gt; dict[str, bytes]:
+    def get_data(self, identifier: str) -&gt; DataFrame:
         &#34;&#34;&#34;
-        Retorna um dicionário com os nomes dos conjuntos de dados como chaves e seu conteúdo em bytes.  
-        
+        Retorna um data frame com os dados requisitados.  
         * Implementado nas classes filhas.
         &#34;&#34;&#34;
         raise NotImplementedError
     
-    def download_data(self, identifier: str, output_folder: str, /,
-                      data: Optional[dict[str, bytes]] = None, **kwargs) -&gt; None:
+    def download_data(self, data: dict[str, bytes], output_folder: str) -&gt; None:
         &#34;&#34;&#34;
-        Baixa os arquivos retornados pelo método get_data([identifier]) na pasta [output_folder]. 
+        Salva os arquivos no dicionários [data] na pasta [output_folder].  
+        * A lógica para extrair dados da API é implementada nas classes filhas.
 
         Parameters
         ----------
-        identifier : str
-            Identificador do conjunto de dados a ser procurado na API.
+        data : dict
+            Dicionário com os arquivos (bytes) a serem salvos. 
         output_folder : str
             Pasta em que os arquivos serão salvos.
-        data : dict
-            Dicionário com os arquivos (bytes) a serem salvos.  
-            Quando empregado, get_data() não é chamado.
-        **kwargs : 
-            Outros parâmetros a serem passados para get_data().
         &#34;&#34;&#34;
-        if data is None:
-            data = self.get_data(identifier, **kwargs)
         for name, file_bytes in data.items():
             with open(join(output_folder, name), &#39;wb&#39;) as f:
                 f.write(file_bytes)
@@ -129,7 +121,6 @@ el.replaceWith(d);
     def update_dateparser(self, new_settings: dict[str, str]) -&gt; None:
         &#34;&#34;&#34;
         Atualiza as configurações utilizadas pelo parser de datas.  
-        
         ** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **
 
         Parameters
@@ -165,8 +156,8 @@ el.replaceWith(d);
 </dl></div>
 <h3>Subclasses</h3>
 <ul class="hlist">
-<li><a title="apisbr.api.AgregadosIBGE.AgregadosIBGE" href="../api/AgregadosIBGE.html#apisbr.api.AgregadosIBGE.AgregadosIBGE">AgregadosIBGE</a></li>
 <li><a title="apisbr.api.DadosAbertos.DadosAbertos" href="../api/DadosAbertos.html#apisbr.api.DadosAbertos.DadosAbertos">DadosAbertos</a></li>
+<li><a title="apisbr.api.IBGEAgregados.IBGEAgregados" href="../api/IBGEAgregados.html#apisbr.api.IBGEAgregados.IBGEAgregados">IBGEAgregados</a></li>
 <li><a title="apisbr.api.IPEAData.IPEAData" href="../api/IPEAData.html#apisbr.api.IPEAData.IPEAData">IPEAData</a></li>
 </ul>
 <h3>Class variables</h3>
@@ -192,71 +183,56 @@ O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pe
 <h3>Methods</h3>
 <dl>
 <dt id="apisbr.core.API.API.download_data"><code class="name flex">
-<span>def <span class="ident">download_data</span></span>(<span>self,<br>identifier: str,<br>output_folder: str,<br>/,<br>data: dict[str, bytes] | None = None,<br>**kwargs) ‑> None</span>
+<span>def <span class="ident">download_data</span></span>(<span>self, data: dict[str, bytes], output_folder: str) ‑> None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def download_data(self, identifier: str, output_folder: str, /,
-                  data: Optional[dict[str, bytes]] = None, **kwargs) -&gt; None:
+<pre><code class="python">def download_data(self, data: dict[str, bytes], output_folder: str) -&gt; None:
     &#34;&#34;&#34;
-    Baixa os arquivos retornados pelo método get_data([identifier]) na pasta [output_folder]. 
+    Salva os arquivos no dicionários [data] na pasta [output_folder].  
+    * A lógica para extrair dados da API é implementada nas classes filhas.
 
     Parameters
     ----------
-    identifier : str
-        Identificador do conjunto de dados a ser procurado na API.
+    data : dict
+        Dicionário com os arquivos (bytes) a serem salvos. 
     output_folder : str
         Pasta em que os arquivos serão salvos.
-    data : dict
-        Dicionário com os arquivos (bytes) a serem salvos.  
-        Quando empregado, get_data() não é chamado.
-    **kwargs : 
-        Outros parâmetros a serem passados para get_data().
     &#34;&#34;&#34;
-    if data is None:
-        data = self.get_data(identifier, **kwargs)
     for name, file_bytes in data.items():
         with open(join(output_folder, name), &#39;wb&#39;) as f:
             f.write(file_bytes)</code></pre>
 </details>
-<div class="desc"><p>Baixa os arquivos retornados pelo método get_data([identifier]) na pasta [output_folder]. </p>
+<div class="desc"><p>Salva os arquivos no dicionários [data] na pasta [output_folder].<br>
+* A lógica para extrair dados da API é implementada nas classes filhas.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
-<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
-<dd>Identificador do conjunto de dados a ser procurado na API.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dicionário com os arquivos (bytes) a serem salvos.</dd>
 <dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
 <dd>Pasta em que os arquivos serão salvos.</dd>
-<dt><strong><code>data</code></strong> :&ensp;<code>dict</code></dt>
-<dd>Dicionário com os arquivos (bytes) a serem salvos.<br>
-Quando empregado, get_data() não é chamado.</dd>
-<dt><strong><code>**kwargs</code></strong></dt>
-<dd>Outros parâmetros a serem passados para get_data().</dd>
 </dl></div>
 </dd>
 <dt id="apisbr.core.API.API.get_data"><code class="name flex">
-<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str) ‑> dict[str, bytes]</span>
+<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_data(self, identifier: str) -&gt; dict[str, bytes]:
+<pre><code class="python">def get_data(self, identifier: str) -&gt; DataFrame:
     &#34;&#34;&#34;
-    Retorna um dicionário com os nomes dos conjuntos de dados como chaves e seu conteúdo em bytes.  
-    
+    Retorna um data frame com os dados requisitados.  
     * Implementado nas classes filhas.
     &#34;&#34;&#34;
     raise NotImplementedError</code></pre>
 </details>
-<div class="desc"><p>Retorna um dicionário com os nomes dos conjuntos de dados como chaves e seu conteúdo em bytes.
-</p>
-<ul>
-<li>Implementado nas classes filhas.</li>
-</ul></div>
+<div class="desc"><p>Retorna um data frame com os dados requisitados.<br>
+* Implementado nas classes filhas.</p></div>
 </dd>
 <dt id="apisbr.core.API.API.get_id"><code class="name flex">
 <span>def <span class="ident">get_id</span></span>(<span>self, title: str) ‑> str</span>
@@ -287,7 +263,6 @@ Quando empregado, get_data() não é chamado.</dd>
 <pre><code class="python">def update_dateparser(self, new_settings: dict[str, str]) -&gt; None:
     &#34;&#34;&#34;
     Atualiza as configurações utilizadas pelo parser de datas.  
-    
     ** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **
 
     Parameters
@@ -298,9 +273,8 @@ Quando empregado, get_data() não é chamado.</dd>
     &#34;&#34;&#34;        
     self.date_parser.set_settings(new_settings)</code></pre>
 </details>
-<div class="desc"><p>Atualiza as configurações utilizadas pelo parser de datas.
-</p>
-<p>** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **</p>
+<div class="desc"><p>Atualiza as configurações utilizadas pelo parser de datas.<br>
+** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>parsing_settings</code></strong> :&ensp;<code>dict</code></dt>

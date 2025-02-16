@@ -2,6 +2,8 @@ import re
 from typing import Optional
 from os.path import join
 
+from pandas import DataFrame
+
 from .DateParser import DateParser
 
 class API():
@@ -45,33 +47,25 @@ class API():
         """
         raise NotImplementedError
     
-    def get_data(self, identifier: str) -> dict[str, bytes]:
+    def get_data(self, identifier: str) -> DataFrame:
         """
-        Retorna um dicionário com os nomes dos conjuntos de dados como chaves e seu conteúdo em bytes.  
-        
+        Retorna um data frame com os dados requisitados.  
         * Implementado nas classes filhas.
         """
         raise NotImplementedError
     
-    def download_data(self, identifier: str, output_folder: str, /,
-                      data: Optional[dict[str, bytes]] = None, **kwargs) -> None:
+    def download_data(self, data: dict[str, bytes], output_folder: str) -> None:
         """
-        Baixa os arquivos retornados pelo método get_data([identifier]) na pasta [output_folder]. 
+        Salva os arquivos no dicionários [data] na pasta [output_folder].  
+        * A lógica para extrair dados da API é implementada nas classes filhas.
 
         Parameters
         ----------
-        identifier : str
-            Identificador do conjunto de dados a ser procurado na API.
+        data : dict
+            Dicionário com os arquivos (bytes) a serem salvos. 
         output_folder : str
             Pasta em que os arquivos serão salvos.
-        data : dict
-            Dicionário com os arquivos (bytes) a serem salvos.  
-            Quando empregado, get_data() não é chamado.
-        **kwargs : 
-            Outros parâmetros a serem passados para get_data().
         """
-        if data is None:
-            data = self.get_data(identifier, **kwargs)
         for name, file_bytes in data.items():
             with open(join(output_folder, name), 'wb') as f:
                 f.write(file_bytes)
@@ -79,7 +73,6 @@ class API():
     def update_dateparser(self, new_settings: dict[str, str]) -> None:
         """
         Atualiza as configurações utilizadas pelo parser de datas.  
-        
         ** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **
 
         Parameters

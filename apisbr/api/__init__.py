@@ -1,4 +1,4 @@
 from .DadosAbertos import DadosAbertos
-from .AgregadosIBGE import AgregadosIBGE
-from .LocalidadesIBGE import LocalidadesIBGE
+from .IBGEAgregados import IBGEAgregados
+from .IBGELocalidades import IBGELocalidades
 from .IPEAData import IPEAData

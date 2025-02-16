@@ -1,12 +1,21 @@
 import re
+from os.path import join as join_path
 
 import requests
 import pandas as pd
 
 from ..core import API, is_similar_text, parse_period_input
+from ..utils import format_to_path
 
+def _get_series_dict() -> dict[str, str]:
+    """
+    Lista as séries de dados disponíveis na plataforma IPEAData.
 
-def get_series_dict() -> dict[str, str]:
+    Returns
+    -------
+    dict[str, str]
+        Dicionário com nomes e códigos das séries de dados.
+    """    
     series_dict = dict()
     query = "http://www.ipeadata.gov.br/api/odata4/Metadados"
     for serie in requests.get(query).json()['value']:
@@ -14,7 +23,15 @@ def get_series_dict() -> dict[str, str]:
     return series_dict
 
 
-def get_territorios_dict() -> dict[str, str]:
+def _get_territorios_dict() -> dict[str, str]:
+    """
+    Lista os territórios disponíveis na plataforma IPEAData.
+
+    Returns
+    -------
+    dict[str, str]
+        Dicionário com nomes de territórios e seus códigos.
+    """    
     territorios_dict = dict()
     query = "http://www.ipeadata.gov.br/api/odata4/Territorios"
     for territorio in requests.get(query).json()['value']:
@@ -23,14 +40,36 @@ def get_territorios_dict() -> dict[str, str]:
 
 
 class IPEAData(API):
+    """
+    Wrapper para executar requisições na API do [IPEAData](http://www.ipeadata.gov.br/)
+    """    
     server_url = "http://www.ipeadata.gov.br/api/odata4/"
-    id_regex = re.compile(r"([0-Z]|_)*")
-    series_dict = get_series_dict()
+    id_regex = re.compile(r"[0-Z]+(_[0-Z]+)+")
+    series_dict = _get_series_dict()
     """Dicionário com as séries de dados disponíveis (chaves) e seus IDs (valores)."""
-    territorios_dict = get_territorios_dict()
+    territorios_dict = _get_territorios_dict()
     """Dicionário com os territórios disponíveis (valores) e seus IDs (chaves)""" 
     
-    def get_id(self, title) -> str:
+    def get_id(self, title: str) -> str:
+        """
+        Procura por um conjunto de dados com o nome idêntico à [title] e retorna seu ID.
+
+        Parameters
+        ----------
+        title : str
+            Título a ser procurado.
+
+        Returns
+        -------
+        str
+            ID do conjunto de dados pesquisado.
+
+        Raises
+        ------
+        self.NoMatchFoundError
+            Erro de ausência de correspondência.  
+            Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
+        """        
         try:
             return self.series_dict[title]
         except KeyError:
@@ -40,7 +79,30 @@ class IPEAData(API):
                     dict_semelhantes[nome_serie] = id_serie
             raise self.NoMatchFoundError(dict_semelhantes)
     
-    def get_df(self, identifier, /, period: str = 'all', level: str = None) -> pd.DataFrame:
+    def get_data(self, identifier: str, level: str = None,
+                 period: str = 'all') -> pd.DataFrame:
+        """
+        Importa os dados da API como um data frame.
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        period : str, optional
+            Filtro de período em que os recursos foram publicados.  
+            *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+            Exemplos de uso:  
+            - '2021' : procura por recursos publicados em 2021  
+            - '2019-2021' : procura por recursos publicados entre 2019 e 2021  
+            - 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+        level : str, optional
+            Agrupa os dados pelo [level] de agregação.
+
+        Returns
+        -------
+        pd.DataFrame
+            Data frame do conjunto de dados selecionado.
+        """        
         if not self.id_regex.fullmatch(identifier):
             identifier = self.get_id(identifier)
         
@@ -71,3 +133,21 @@ class IPEAData(API):
             df = df.pivot(columns='Data', index='Territorio', values='Valor')
 
         return df
+    
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
+        """
+        Faz o download da tabela encontrada em [output_folder].
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        output_folder : str
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs :
+            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        """        
+        df = self.get_data(identifier, **kwargs)
+        file_name = format_to_path(identifier) + '.csv'
+        path = join_path(output_folder, file_name)
+        df.to_csv(path)

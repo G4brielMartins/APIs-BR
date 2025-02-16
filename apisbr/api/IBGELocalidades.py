@@ -2,11 +2,11 @@ import requests
 
 from ..utils import invert_dict
 
-class LocalidadesIBGE():
+class IBGELocalidades():
     server_url = "https://servicodados.ibge.gov.br/api/v1/localidades"
     
     @classmethod
-    def get_id_dict(cls, key: str = 'nome', /, verifier: bool = True) -> dict[str, int]:  
+    def get_id_dict(cls, key: str = 'nome', *, verifier: bool = True) -> dict[str, int]:  
         match key:
             case 'nome':
                 invert = False

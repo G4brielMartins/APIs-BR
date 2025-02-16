@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>apisbr.core.apis_internal_functions API documentation</title>
+<title>apisbr.api.IBGELocalidades API documentation</title>
 <meta name="description" content="">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
@@ -33,7 +33,7 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>apisbr.core.apis_internal_functions</code></h1>
+<h1 class="title">Module <code>apisbr.api.IBGELocalidades</code></h1>
 </header>
 <section id="section-intro">
 </section>
@@ -42,127 +42,59 @@ el.replaceWith(d);
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-functions">Functions</h2>
-<dl>
-<dt id="apisbr.core.apis_internal_functions.is_similar_text"><code class="name flex">
-<span>def <span class="ident">is_similar_text</span></span>(<span>target: str, current: str) ‑> bool</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def is_similar_text(target: str, current: str) -&gt; bool:
-    &#34;&#34;&#34;
-    Verifica se dois textos são semelhantes: [target] vs [current].
-    
-    Parameters
-    ----------
-    target : str
-        Texto sendo buscado.
-    current : str
-        Texto onde [target] será procurado.
-        
-    Returns
-    -------
-    bool
-        Retorna verdadeiro se todas as palavras de [target] estão em [current].
-    &#34;&#34;&#34;
-    target = remove_accents(target).lower()
-    current = remove_accents(current).lower()
-    return all(palavra in current for palavra in target.split())</code></pre>
-</details>
-<div class="desc"><p>Verifica se dois textos são semelhantes: [target] vs [current].</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>target</code></strong> :&ensp;<code>str</code></dt>
-<dd>Texto sendo buscado.</dd>
-<dt><strong><code>current</code></strong> :&ensp;<code>str</code></dt>
-<dd>Texto onde [target] será procurado.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>bool</code></dt>
-<dd>Retorna verdadeiro se todas as palavras de [target] estão em [current].</dd>
-</dl></div>
-</dd>
-<dt id="apisbr.core.apis_internal_functions.parse_period_input"><code class="name flex">
-<span>def <span class="ident">parse_period_input</span></span>(<span>period: str,<br>date_parser: <a title="apisbr.core.DateParser.DateParser" href="DateParser.html#apisbr.core.DateParser.DateParser">DateParser</a> = &lt;apisbr.core.DateParser.DateParser object&gt;) ‑> tuple[MinDate, MaxDate]</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def parse_period_input(period: str, date_parser: DateParser = DateParser()) -&gt; tuple[MinDate, MaxDate]:
-    &#34;&#34;&#34;
-    Trata os inputs de períodos quando solicitados pelos wrappers de APIs.  
-    *Aceita qualquer formato de data compatível com a biblioteca dateparser, no formato DMY (padrão).  
-
-    Parameters
-    ----------
-    period : str
-        String de período no formato especificado.  
-        Exemplos de uso:  
-        - &#39;2021&#39; : procura por recursos publicados em 2021  
-        - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
-        - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)  
-    date_parser : DateParser
-        DateParser a ser utilizado. Caso não fornecido, utiliza o DateParser padrão
-
-    Returns
-    -------
-    tuple[MinDate, MaxDate]
-        Data inicial (MinDate) e final (MaxDate) do período selecionado, no formato datetime.
-
-    Raises
-    ------
-    ValueError
-        _description_
-    &#34;&#34;&#34;
-    match period.split(&#39;-&#39;):
-        case [&#39;all&#39;]:
-            min_date = dt.datetime.min
-            max_date = dt.datetime.max
-        case [x]:
-            d = date_parser.parse(x)
-            min_date = dt.datetime(d.year, 1, 1)
-            max_date = d
-        case [x, y]:
-            min_date = date_parser.parse(x)
-            max_date = date_parser.parse(y)
-        case _:
-            raise ValueError(&#34;Valor de [period] não pôde ser reconhecido.&#34;)
-    return min_date, max_date</code></pre>
-</details>
-<div class="desc"><p>Trata os inputs de períodos quando solicitados pelos wrappers de APIs.<br>
-*Aceita qualquer formato de data compatível com a biblioteca dateparser, no formato DMY (padrão).
-</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>period</code></strong> :&ensp;<code>str</code></dt>
-<dd>String de período no formato especificado.<br>
-Exemplos de uso:<br>
-- '2021' : procura por recursos publicados em 2021<br>
-- '2019-2021' : procura por recursos publicados entre 2019 e 2021<br>
-- 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)</dd>
-<dt><strong><code>date_parser</code></strong> :&ensp;<code>DateParser</code></dt>
-<dd>DateParser a ser utilizado. Caso não fornecido, utiliza o DateParser padrão</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>tuple[MinDate, MaxDate]</code></dt>
-<dd>Data inicial (MinDate) e final (MaxDate) do período selecionado, no formato datetime.</dd>
-</dl>
-<h2 id="raises">Raises</h2>
-<dl>
-<dt><code>ValueError</code></dt>
-<dd><em>description</em></dd>
-</dl></div>
-</dd>
-</dl>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="apisbr.api.IBGELocalidades.IBGELocalidades"><code class="flex name class">
+<span>class <span class="ident">IBGELocalidades</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class IBGELocalidades():
+    server_url = &#34;https://servicodados.ibge.gov.br/api/v1/localidades&#34;
+    
+    @classmethod
+    def get_id_dict(cls, key: str = &#39;nome&#39;, *, verifier: bool = True) -&gt; dict[str, int]:  
+        match key:
+            case &#39;nome&#39;:
+                invert = False
+            case &#39;id&#39;:
+                invert = True
+            case _:
+                raise ValueError
+        query = cls.server_url + &#34;/municipios&#34;
+        id_dict = dict()
+        for municipio in requests.get(query).json():
+            uf = municipio[&#39;microrregiao&#39;][&#39;mesorregiao&#39;][&#39;UF&#39;][&#39;sigla&#39;]
+            value = municipio[&#39;id&#39;] if verifier else int(municipio[&#39;id&#39;]/10)
+            id_dict[f&#34;{municipio[&#39;nome&#39;]} - {uf}&#34;] = value
+        if invert:
+            id_dict = invert_dict(id_dict)
+        return id_dict</code></pre>
+</details>
+<div class="desc"></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="apisbr.api.IBGELocalidades.IBGELocalidades.server_url"><code class="name">var <span class="ident">server_url</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="apisbr.api.IBGELocalidades.IBGELocalidades.get_id_dict"><code class="name flex">
+<span>def <span class="ident">get_id_dict</span></span>(<span>key: str = 'nome', *, verifier: bool = True) ‑> dict[str, int]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -172,13 +104,18 @@ Exemplos de uso:<br>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="apisbr.core" href="index.html">apisbr.core</a></code></li>
+<li><code><a title="apisbr.api" href="index.html">apisbr.api</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-functions">Functions</a></h3>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="apisbr.api.IBGELocalidades.IBGELocalidades" href="#apisbr.api.IBGELocalidades.IBGELocalidades">IBGELocalidades</a></code></h4>
 <ul class="">
-<li><code><a title="apisbr.core.apis_internal_functions.is_similar_text" href="#apisbr.core.apis_internal_functions.is_similar_text">is_similar_text</a></code></li>
-<li><code><a title="apisbr.core.apis_internal_functions.parse_period_input" href="#apisbr.core.apis_internal_functions.parse_period_input">parse_period_input</a></code></li>
+<li><code><a title="apisbr.api.IBGELocalidades.IBGELocalidades.get_id_dict" href="#apisbr.api.IBGELocalidades.IBGELocalidades.get_id_dict">get_id_dict</a></code></li>
+<li><code><a title="apisbr.api.IBGELocalidades.IBGELocalidades.server_url" href="#apisbr.api.IBGELocalidades.IBGELocalidades.server_url">server_url</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
