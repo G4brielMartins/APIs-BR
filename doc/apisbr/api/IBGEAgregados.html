@@ -170,7 +170,7 @@ el.replaceWith(d);
         id_variavel = variavel if variavel.isdigit() else self.get_id_variavel(variavel, id_agregado)
         return f&#34;{id_agregado}-{id_variavel}&#34;
     
-    def get_metadata(self, identifier: str) -&gt; dict[str]:
+    def get_metadata(self, identifier: str) -&gt; JSON:
         &#34;&#34;&#34;
         Pesquisa os metadados referentes ao agregado de interesse.
 
@@ -181,8 +181,8 @@ el.replaceWith(d);
 
         Returns
         -------
-        dict[str]
-            Dicionário com os metadados.
+        JSON
+            Arquivo JSON com os metadados transformado em dicionário.
         &#34;&#34;&#34;        
         id_agregado = identifier if identifier.isdigit() else self.get_id_agregado(identifier)
         
@@ -191,7 +191,53 @@ el.replaceWith(d);
     
     
     def get_data(self, identifier: str, level: str = &#39;N1&#39;, period: str = &#39;-6&#39;, *,
-                 classify: Optional[dict[str]] = None) -&gt; pd.DataFrame:
+                 classify: Optional[dict[str]] = None) -&gt; pd.DataFrame|dict[str, pd.DataFrame]:
+        &#34;&#34;&#34;
+        Importa os dados da API IBGE Agregados como um data frame.  
+        * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
+
+        Parameters
+        ----------
+        identifier : str
+            Título ou ID do agregado e variável de interesse.  
+            Segue os formatos:  
+            - [título agregado];[titulo var]  
+            - [ID agregado]-[ID var]  
+            Para pesquisar agregados ou variáveis disponíveis:  
+            - [palavras chave] -&gt; Procura agregados que contenham as palavras no seu título  
+            - [título ou ID agregado] -&gt; Lista as varíaveis disponíveis no agregado
+        level : str, optional
+            Nível de agregação dos dados (e.g. dados municipais, estaduais...).  
+            Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).  
+            Por padrão, assume o valor N1 (Brasil).
+        period : str, optional
+            Período de referência dos dados.  
+            Segue os formatos:  
+            - 2020|2022 -&gt; Dados de 2020 e de 2022  
+            - 2020-2022 -&gt; Dados de 2020 até 2022  
+            - -6 (padrão) -&gt; Dados mais recentes (últimos seis períodos)  
+            - 202201-202206 -&gt; Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)
+        classify : Optional[dict[str]], optional
+            Dicionário de classificadores para subdividir os dados.  
+            Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
+            Quando um classificador for omitido em [classify], não é realizada subdivisão.  
+            Por padrão, não realiza subdivisões.
+
+        Returns
+        -------
+        pd.DataFrame|dict[str, pd.DataFrame]
+            Retorna um data frame com os dados solicitados.  
+            Se [classify] for fornecido, retorna um dicionário com nome da variável + subdivisão como chave para os data frames.
+
+        Raises
+        ------
+        self.NoMatchFoundError
+            Erro de ausência de correspondência do agregado.  
+            Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
+        ValueError
+            Erro de argumento inválido.  
+            Dá print nos valores disponíveis para o argumento inválido.
+        &#34;&#34;&#34;        
         # ----- Input handler
         match identifier:
             case id_agreg_e_id_var if self.id_regex.fullmatch(id_agreg_e_id_var):
@@ -267,14 +313,33 @@ el.replaceWith(d);
         
         if classify is not None:
             class_dict = get_class_dict()
-            if not isinstance(classify, dict):
+            if (not isinstance(classify, dict)) or (len(classify) == 0):
                 raise ValueError(get_error_msg(class_dict))
             query += get_parametro_classificacao()
         
-        # Obtenção do data frame
+        # ----- Obtenção do data frame
+        # A série de for loops representa a navegação pelo JSON retornado pela API
+        # *Há uma forma de navegar por JSON trees com código mais limpo?
+        json = requests.get(query).json()
+    
+        df_dict = dict()
+        for variavel in json:
+            for classificacoes in variavel[&#39;resultados&#39;]:
+                df = pd.DataFrame()
+                for local in classificacoes[&#39;series&#39;]:              
+                    local_stamp = local[&#39;localidade&#39;][&#39;nome&#39;]
+                    for periodo, valor in local[&#39;serie&#39;].items():
+                        df.loc[local_stamp, periodo] = float(valor)
+                
+                class_stamp = str()
+                for categoria in classificacoes[&#39;classificacoes&#39;]:
+                    class_stamp += f&#34; - {str(*categoria[&#39;categoria&#39;].values())}&#34;
+                var_stamp = variavel[&#39;variavel&#39;] + class_stamp
+                df_dict[var_stamp] = df
         
-        print(query)
-        return requests.get(query).json()</code></pre>
+        if len(df_dict) == 1:
+            return [*df_dict.values()][0]
+        return df_dict</code></pre>
 </details>
 <div class="desc"><p>Wrapper para auxiliar com requisições na <a href="https://servicodados.ibge.gov.br/api/docs/agregados?versao=3">API IBGE Agregados</a>.</p></div>
 <h3>Ancestors</h3>
@@ -294,6 +359,210 @@ el.replaceWith(d);
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_data"><code class="name flex">
+<span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None) ‑> pandas.core.frame.DataFrame | dict[str, pandas.core.frame.DataFrame]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_data(self, identifier: str, level: str = &#39;N1&#39;, period: str = &#39;-6&#39;, *,
+             classify: Optional[dict[str]] = None) -&gt; pd.DataFrame|dict[str, pd.DataFrame]:
+    &#34;&#34;&#34;
+    Importa os dados da API IBGE Agregados como um data frame.  
+    * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
+
+    Parameters
+    ----------
+    identifier : str
+        Título ou ID do agregado e variável de interesse.  
+        Segue os formatos:  
+        - [título agregado];[titulo var]  
+        - [ID agregado]-[ID var]  
+        Para pesquisar agregados ou variáveis disponíveis:  
+        - [palavras chave] -&gt; Procura agregados que contenham as palavras no seu título  
+        - [título ou ID agregado] -&gt; Lista as varíaveis disponíveis no agregado
+    level : str, optional
+        Nível de agregação dos dados (e.g. dados municipais, estaduais...).  
+        Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).  
+        Por padrão, assume o valor N1 (Brasil).
+    period : str, optional
+        Período de referência dos dados.  
+        Segue os formatos:  
+        - 2020|2022 -&gt; Dados de 2020 e de 2022  
+        - 2020-2022 -&gt; Dados de 2020 até 2022  
+        - -6 (padrão) -&gt; Dados mais recentes (últimos seis períodos)  
+        - 202201-202206 -&gt; Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)
+    classify : Optional[dict[str]], optional
+        Dicionário de classificadores para subdividir os dados.  
+        Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
+        Quando um classificador for omitido em [classify], não é realizada subdivisão.  
+        Por padrão, não realiza subdivisões.
+
+    Returns
+    -------
+    pd.DataFrame|dict[str, pd.DataFrame]
+        Retorna um data frame com os dados solicitados.  
+        Se [classify] for fornecido, retorna um dicionário com nome da variável + subdivisão como chave para os data frames.
+
+    Raises
+    ------
+    self.NoMatchFoundError
+        Erro de ausência de correspondência do agregado.  
+        Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
+    ValueError
+        Erro de argumento inválido.  
+        Dá print nos valores disponíveis para o argumento inválido.
+    &#34;&#34;&#34;        
+    # ----- Input handler
+    match identifier:
+        case id_agreg_e_id_var if self.id_regex.fullmatch(id_agreg_e_id_var):
+            id_agregado, id_variavel = id_agreg_e_id_var.split(&#39;-&#39;)
+
+        case id_agregado if id_agregado.isdigit():
+            id_agregado, id_variavel = id_agregado, None
+            
+        case titulo_agreg_e_titulo_var if titulo_agreg_e_titulo_var.find(&#39;;&#39;) &gt; -1:
+            id_agregado, id_variavel = self.get_id(titulo_agreg_e_titulo_var).split(&#39;-&#39;)
+            
+        case titulo_agregado if titulo_agregado.find(&#39;;&#39;) == -1:
+            id_agregado, id_variavel = self.get_id(titulo_agregado), None
+
+        case _:
+            raise ValueError(&#34;O [title] apresenta formato inválido.&#34;)
+    
+    if id_variavel is None:
+        msg = &#34;Nenhuma variável fornecida. Seguem variaveis disponíveis:&#34;
+        for var in self.get_metadata(id_agregado)[&#39;variaveis&#39;]:
+             msg += f&#34;\n{var[&#39;nome&#39;]} : {var[&#39;id&#39;]}&#34;
+        raise ValueError(msg)
+    
+    # ----- Definição do query base
+    query = self.server_url+f&#34;/{id_agregado}/periodos/{period}/variaveis/{id_variavel}?&#34;
+    
+    # ----- Definição dos parâmetros do query
+    # Parâmetro: Localidade
+    niveis_disponiveis = self.get_metadata(id_agregado)[&#39;nivelTerritorial&#39;][&#39;Administrativo&#39;]
+    if not re.fullmatch(&#34;N[0-9]+&#34;, level):
+        try:
+            level = invert_dict(self.niveis_geo_dict)[level]
+        except KeyError:
+            pass
+    if level not in niveis_disponiveis:
+        msg = &#34;O nível geográfico [level] não está disponível. Selecione:&#34;
+        for nivel in niveis_disponiveis:
+            msg += f&#34;\n{nivel} : {self.niveis_geo_dict[nivel]}&#34;
+        raise ValueError(msg)
+    query += f&#34;localidades={level}[all]&#34;
+    
+    # Parâmetro: Categoria
+    def get_class_dict() -&gt; dict:
+        class_dict = dict()
+        for class_ in self.get_metadata(id_agregado)[&#39;classificacoes&#39;]:
+            # Extrai nomes e IDs das categorias em um dicionário
+            categorias_dict = dict([(cat[&#39;nome&#39;], cat[&#39;id&#39;]) for cat in class_[&#39;categorias&#39;]])
+            # Cria dicionario com valores [ID classificação, dict categorias]
+            class_dict[class_[&#39;nome&#39;]] = [class_[&#39;id&#39;], categorias_dict]
+        return class_dict
+    
+    def get_error_msg(class_dict: dict) -&gt; str:
+        msg = &#34;O dicionário [classify] é inválido. Classes disponíveis:&#34;
+        for class_, (_, cat_dict) in class_dict.items():
+            msg += f&#34;\n{class_}:&#34;
+            for cat in cat_dict:
+                msg += f&#34;\n  - {cat}&#34;
+        return msg
+    
+    def get_parametro_classificacao() -&gt; str:
+        parametro_class = &#39;&amp;classificacao=&#39;
+        for class_, categoria in classify.items():
+            if class_ not in class_dict:
+                raise ValueError(get_error_msg(class_dict))
+            if isinstance(categoria, str):
+                categoria = [categoria]
+            # Adiciona o ID da classe ao parâmetro
+            parametro_class += f&#34;{class_dict[class_][0]}&#34;
+            # Adiciona os IDs das categorias pertencentes a classe
+            ids_cat = [class_dict[class_][1][cat] for cat in categoria]
+            parametro_class += str(ids_cat).replace(&#39; &#39;, &#39;&#39;) + &#39;|&#39;
+        return parametro_class[:-1] # Remove o último caráctere pipe (|)
+    
+    if classify is not None:
+        class_dict = get_class_dict()
+        if (not isinstance(classify, dict)) or (len(classify) == 0):
+            raise ValueError(get_error_msg(class_dict))
+        query += get_parametro_classificacao()
+    
+    # ----- Obtenção do data frame
+    # A série de for loops representa a navegação pelo JSON retornado pela API
+    # *Há uma forma de navegar por JSON trees com código mais limpo?
+    json = requests.get(query).json()
+
+    df_dict = dict()
+    for variavel in json:
+        for classificacoes in variavel[&#39;resultados&#39;]:
+            df = pd.DataFrame()
+            for local in classificacoes[&#39;series&#39;]:              
+                local_stamp = local[&#39;localidade&#39;][&#39;nome&#39;]
+                for periodo, valor in local[&#39;serie&#39;].items():
+                    df.loc[local_stamp, periodo] = float(valor)
+            
+            class_stamp = str()
+            for categoria in classificacoes[&#39;classificacoes&#39;]:
+                class_stamp += f&#34; - {str(*categoria[&#39;categoria&#39;].values())}&#34;
+            var_stamp = variavel[&#39;variavel&#39;] + class_stamp
+            df_dict[var_stamp] = df
+    
+    if len(df_dict) == 1:
+        return [*df_dict.values()][0]
+    return df_dict</code></pre>
+</details>
+<div class="desc"><p>Importa os dados da API IBGE Agregados como um data frame.<br>
+* Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título ou ID do agregado e variável de interesse.<br>
+Segue os formatos:<br>
+- [título agregado];[titulo var]<br>
+- [ID agregado]-[ID var]<br>
+Para pesquisar agregados ou variáveis disponíveis:<br>
+- [palavras chave] -&gt; Procura agregados que contenham as palavras no seu título<br>
+- [título ou ID agregado] -&gt; Lista as varíaveis disponíveis no agregado</dd>
+<dt><strong><code>level</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Nível de agregação dos dados (e.g. dados municipais, estaduais&hellip;).<br>
+Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).<br>
+Por padrão, assume o valor N1 (Brasil).</dd>
+<dt><strong><code>period</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Período de referência dos dados.<br>
+Segue os formatos:<br>
+- 2020|2022 -&gt; Dados de 2020 e de 2022<br>
+- 2020-2022 -&gt; Dados de 2020 até 2022<br>
+- -6 (padrão) -&gt; Dados mais recentes (últimos seis períodos)<br>
+- 202201-202206 -&gt; Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)</dd>
+<dt><strong><code>classify</code></strong> :&ensp;<code>Optional[dict[str]]</code>, optional</dt>
+<dd>Dicionário de classificadores para subdividir os dados.<br>
+Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.<br>
+Quando um classificador for omitido em [classify], não é realizada subdivisão.<br>
+Por padrão, não realiza subdivisões.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame|dict[str, pd.DataFrame]</code></dt>
+<dd>Retorna um data frame com os dados solicitados.<br>
+Se [classify] for fornecido, retorna um dicionário com nome da variável + subdivisão como chave para os data frames.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>self.NoMatchFoundError</code></dt>
+<dd>Erro de ausência de correspondência do agregado.<br>
+Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
+<dt><code>ValueError</code></dt>
+<dd>Erro de argumento inválido.<br>
+Dá print nos valores disponíveis para o argumento inválido.</dd>
+</dl></div>
+</dd>
 <dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_id"><code class="name flex">
 <span>def <span class="ident">get_id</span></span>(<span>self, title: str) ‑> str</span>
 </code></dt>
@@ -480,14 +749,14 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 </dl></div>
 </dd>
 <dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_metadata"><code class="name flex">
-<span>def <span class="ident">get_metadata</span></span>(<span>self, identifier: str) ‑> dict[str]</span>
+<span>def <span class="ident">get_metadata</span></span>(<span>self, identifier: str) ‑> JSON</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_metadata(self, identifier: str) -&gt; dict[str]:
+<pre><code class="python">def get_metadata(self, identifier: str) -&gt; JSON:
     &#34;&#34;&#34;
     Pesquisa os metadados referentes ao agregado de interesse.
 
@@ -498,8 +767,8 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 
     Returns
     -------
-    dict[str]
-        Dicionário com os metadados.
+    JSON
+        Arquivo JSON com os metadados transformado em dicionário.
     &#34;&#34;&#34;        
     id_agregado = identifier if identifier.isdigit() else self.get_id_agregado(identifier)
     
@@ -514,8 +783,8 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>dict[str]</code></dt>
-<dd>Dicionário com os metadados.</dd>
+<dt><code>JSON</code></dt>
+<dd>Arquivo JSON com os metadados transformado em dicionário.</dd>
 </dl></div>
 </dd>
 </dl>
@@ -526,7 +795,6 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <li><code><a title="apisbr.core.API.API.NoMatchFoundError" href="../core/API.html#apisbr.core.API.API.NoMatchFoundError">NoMatchFoundError</a></code></li>
 <li><code><a title="apisbr.core.API.API.date_parser" href="../core/API.html#apisbr.core.API.API.date_parser">date_parser</a></code></li>
 <li><code><a title="apisbr.core.API.API.download_data" href="../core/API.html#apisbr.core.API.API.download_data">download_data</a></code></li>
-<li><code><a title="apisbr.core.API.API.get_data" href="../core/API.html#apisbr.core.API.API.get_data">get_data</a></code></li>
 <li><code><a title="apisbr.core.API.API.id_regex" href="../core/API.html#apisbr.core.API.API.id_regex">id_regex</a></code></li>
 <li><code><a title="apisbr.core.API.API.server_url" href="../core/API.html#apisbr.core.API.API.server_url">server_url</a></code></li>
 <li><code><a title="apisbr.core.API.API.update_dateparser" href="../core/API.html#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
@@ -553,6 +821,7 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <h4><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados" href="#apisbr.api.IBGEAgregados.IBGEAgregados">IBGEAgregados</a></code></h4>
 <ul class="two-column">
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.agregados_dict" href="#apisbr.api.IBGEAgregados.IBGEAgregados.agregados_dict">agregados_dict</a></code></li>
+<li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_data" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_data">get_data</a></code></li>
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_id" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_id">get_id</a></code></li>
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_id_agregado" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_id_agregado">get_id_agregado</a></code></li>
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_id_variavel" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_id_variavel">get_id_variavel</a></code></li>

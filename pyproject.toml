@@ -1,5 +1,6 @@
 [project]
 name = "apis-br"
+dynamic = ["version"]
 description = "A Python package for simplified requests in brazilian data APIs (e.g. IBGE Agregados)"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
