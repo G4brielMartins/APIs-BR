@@ -21,6 +21,7 @@ path = "apisbr/__init__.py"
 
 [dependency-groups]
 dev = [
+    "hatch>=1.14.0",
     "ipykernel>=6.29.5",
     "pdoc3>=0.11.5",
     "pytest>=8.3.4",
@@ -43,7 +44,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 include = [
   "apisbr/*",
-  "/tests"
+  "tests/*.py"
 ]
 exclude = [
   "*.env"

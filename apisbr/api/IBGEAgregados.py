@@ -7,7 +7,7 @@ import requests
 import pandas as pd
 
 from ..core import API, is_similar_text
-from ..utils import invert_dict
+from ..utils import invert_dict, format_to_path
 
 type JSON = dict[str]
 
@@ -29,8 +29,15 @@ def _get_agregados_dict() -> dict[str, str]:
 
 
 def _get_niveis_geo_dict() -> dict[str, str]:
-    # Importa o arquivo com todos os identificadores de nível geográfico
-    # *Não foi encontrada uma forma de obter os identificadores via API
+    """
+    Importa o arquivo com todos os identificadores de nível geográfico
+    *Não foi encontrada uma forma de obter os identificadores via API
+
+    Returns
+    -------
+    dict[str, str]
+        Dicionário com os nomes e códigos de níveis geográficos.
+    """
     assets_dir = Path(os.path.abspath(__file__)).parents[1]
     file_path = os.path.join(assets_dir, 'assets', 'ibge_level_identifiers.txt')
     
@@ -42,6 +49,40 @@ def _get_niveis_geo_dict() -> dict[str, str]:
             descricao = line[split_point+2:-1] # Remove o espaço após - e o \n no fim da linha
             localidades_dict[nivel] = descricao
     return localidades_dict
+
+
+def _process_identifier_input(identifier, api) -> tuple[str]:
+    """
+    Processa o input de identificador.
+
+    Parameters
+    ----------
+    identifier : str
+        Idenficador a ser processado.
+    api : _type_
+        Instância da classe IBGEAgregados.
+
+    Returns
+    -------
+    tuple[str]
+        id_agregado, id_variavel
+    """    
+    match identifier:
+        case id_agreg_e_id_var if api.id_regex.fullmatch(id_agreg_e_id_var):
+            id_agregado, id_variavel = id_agreg_e_id_var.split('-')
+
+        case id_agregado if id_agregado.isdigit():
+            id_agregado, id_variavel = id_agregado, None
+            
+        case titulo_agreg_e_titulo_var if titulo_agreg_e_titulo_var.find(';') > -1:
+            id_agregado, id_variavel = api.get_id(titulo_agreg_e_titulo_var).split('-')
+            
+        case titulo_agregado if titulo_agregado.find(';') == -1:
+            id_agregado, id_variavel = api.get_id(titulo_agregado), None
+
+        case _:
+            raise ValueError("O [identifier] apresenta formato inválido.")    
+    return id_agregado, id_variavel
 
 
 class IBGEAgregados(API):
@@ -229,21 +270,7 @@ class IBGEAgregados(API):
             Dá print nos valores disponíveis para o argumento inválido.
         """        
         # ----- Input handler
-        match identifier:
-            case id_agreg_e_id_var if self.id_regex.fullmatch(id_agreg_e_id_var):
-                id_agregado, id_variavel = id_agreg_e_id_var.split('-')
-
-            case id_agregado if id_agregado.isdigit():
-                id_agregado, id_variavel = id_agregado, None
-                
-            case titulo_agreg_e_titulo_var if titulo_agreg_e_titulo_var.find(';') > -1:
-                id_agregado, id_variavel = self.get_id(titulo_agreg_e_titulo_var).split('-')
-                
-            case titulo_agregado if titulo_agregado.find(';') == -1:
-                id_agregado, id_variavel = self.get_id(titulo_agregado), None
-
-            case _:
-                raise ValueError("O [title] apresenta formato inválido.")
+        id_agregado, id_variavel = _process_identifier_input(identifier, self)
         
         if id_variavel is None:
             msg = "Nenhuma variável fornecida. Seguem variaveis disponíveis:"
@@ -330,3 +357,30 @@ class IBGEAgregados(API):
         if len(df_dict) == 1:
             return [*df_dict.values()][0]
         return df_dict
+    
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
+        """
+        Faz o download do conjunto de dados encontrado em [output_folder].
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        output_folder : str
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs :
+            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        """       
+        def export_csv(name: str, df: pd.DataFrame):
+            file_name = format_to_path(name) + '.csv'
+            path = os.path.join(output_folder, file_name)
+            df.to_csv(path)
+        
+        data = self.get_data(identifier, **kwargs)
+        if isinstance(data, dict):
+            for nome, df in data:
+                export_csv(nome, df)
+        else:
+            id_agregado, _ = _process_identifier_input(identifier, self)
+            nome = invert_dict(self.agregados_dict)[id_agregado]
+            export_csv(nome, data)

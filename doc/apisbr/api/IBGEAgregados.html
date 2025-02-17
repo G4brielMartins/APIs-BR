@@ -239,21 +239,7 @@ el.replaceWith(d);
             Dá print nos valores disponíveis para o argumento inválido.
         &#34;&#34;&#34;        
         # ----- Input handler
-        match identifier:
-            case id_agreg_e_id_var if self.id_regex.fullmatch(id_agreg_e_id_var):
-                id_agregado, id_variavel = id_agreg_e_id_var.split(&#39;-&#39;)
-
-            case id_agregado if id_agregado.isdigit():
-                id_agregado, id_variavel = id_agregado, None
-                
-            case titulo_agreg_e_titulo_var if titulo_agreg_e_titulo_var.find(&#39;;&#39;) &gt; -1:
-                id_agregado, id_variavel = self.get_id(titulo_agreg_e_titulo_var).split(&#39;-&#39;)
-                
-            case titulo_agregado if titulo_agregado.find(&#39;;&#39;) == -1:
-                id_agregado, id_variavel = self.get_id(titulo_agregado), None
-
-            case _:
-                raise ValueError(&#34;O [title] apresenta formato inválido.&#34;)
+        id_agregado, id_variavel = _process_identifier_input(identifier, self)
         
         if id_variavel is None:
             msg = &#34;Nenhuma variável fornecida. Seguem variaveis disponíveis:&#34;
@@ -339,7 +325,34 @@ el.replaceWith(d);
         
         if len(df_dict) == 1:
             return [*df_dict.values()][0]
-        return df_dict</code></pre>
+        return df_dict
+    
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
+        &#34;&#34;&#34;
+        Faz o download do conjunto de dados encontrado em [output_folder].
+
+        Parameters
+        ----------
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
+        output_folder : str
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs :
+            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        &#34;&#34;&#34;       
+        def export_csv(name: str, df: pd.DataFrame):
+            file_name = format_to_path(name) + &#39;.csv&#39;
+            path = os.path.join(output_folder, file_name)
+            df.to_csv(path)
+        
+        data = self.get_data(identifier, **kwargs)
+        if isinstance(data, dict):
+            for nome, df in data:
+                export_csv(nome, df)
+        else:
+            id_agregado, _ = _process_identifier_input(identifier, self)
+            nome = invert_dict(self.agregados_dict)[id_agregado]
+            export_csv(nome, data)</code></pre>
 </details>
 <div class="desc"><p>Wrapper para auxiliar com requisições na <a href="https://servicodados.ibge.gov.br/api/docs/agregados?versao=3">API IBGE Agregados</a>.</p></div>
 <h3>Ancestors</h3>
@@ -359,6 +372,52 @@ el.replaceWith(d);
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="apisbr.api.IBGEAgregados.IBGEAgregados.download_data"><code class="name flex">
+<span>def <span class="ident">download_data</span></span>(<span>self, identifier: str, output_folder: str, **kwargs) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
+    &#34;&#34;&#34;
+    Faz o download do conjunto de dados encontrado em [output_folder].
+
+    Parameters
+    ----------
+    identifier : str
+        Título exato ou ID do conjunto de dados de interesse.
+    output_folder : str
+        Caminho da pasta onde os dados devem ser salvos.
+    **kwargs :
+        Parâmetros passados à get_data() para filtrar os dados encontrados.
+    &#34;&#34;&#34;       
+    def export_csv(name: str, df: pd.DataFrame):
+        file_name = format_to_path(name) + &#39;.csv&#39;
+        path = os.path.join(output_folder, file_name)
+        df.to_csv(path)
+    
+    data = self.get_data(identifier, **kwargs)
+    if isinstance(data, dict):
+        for nome, df in data:
+            export_csv(nome, df)
+    else:
+        id_agregado, _ = _process_identifier_input(identifier, self)
+        nome = invert_dict(self.agregados_dict)[id_agregado]
+        export_csv(nome, data)</code></pre>
+</details>
+<div class="desc"><p>Faz o download do conjunto de dados encontrado em [output_folder].</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
+<dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
+<dd>Caminho da pasta onde os dados devem ser salvos.</dd>
+</dl>
+<p>**kwargs :
+Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
+</dd>
 <dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_data"><code class="name flex">
 <span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None) ‑> pandas.core.frame.DataFrame | dict[str, pandas.core.frame.DataFrame]</span>
 </code></dt>
@@ -416,21 +475,7 @@ el.replaceWith(d);
         Dá print nos valores disponíveis para o argumento inválido.
     &#34;&#34;&#34;        
     # ----- Input handler
-    match identifier:
-        case id_agreg_e_id_var if self.id_regex.fullmatch(id_agreg_e_id_var):
-            id_agregado, id_variavel = id_agreg_e_id_var.split(&#39;-&#39;)
-
-        case id_agregado if id_agregado.isdigit():
-            id_agregado, id_variavel = id_agregado, None
-            
-        case titulo_agreg_e_titulo_var if titulo_agreg_e_titulo_var.find(&#39;;&#39;) &gt; -1:
-            id_agregado, id_variavel = self.get_id(titulo_agreg_e_titulo_var).split(&#39;-&#39;)
-            
-        case titulo_agregado if titulo_agregado.find(&#39;;&#39;) == -1:
-            id_agregado, id_variavel = self.get_id(titulo_agregado), None
-
-        case _:
-            raise ValueError(&#34;O [title] apresenta formato inválido.&#34;)
+    id_agregado, id_variavel = _process_identifier_input(identifier, self)
     
     if id_variavel is None:
         msg = &#34;Nenhuma variável fornecida. Seguem variaveis disponíveis:&#34;
@@ -794,7 +839,6 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <ul class="hlist">
 <li><code><a title="apisbr.core.API.API.NoMatchFoundError" href="../core/API.html#apisbr.core.API.API.NoMatchFoundError">NoMatchFoundError</a></code></li>
 <li><code><a title="apisbr.core.API.API.date_parser" href="../core/API.html#apisbr.core.API.API.date_parser">date_parser</a></code></li>
-<li><code><a title="apisbr.core.API.API.download_data" href="../core/API.html#apisbr.core.API.API.download_data">download_data</a></code></li>
 <li><code><a title="apisbr.core.API.API.id_regex" href="../core/API.html#apisbr.core.API.API.id_regex">id_regex</a></code></li>
 <li><code><a title="apisbr.core.API.API.server_url" href="../core/API.html#apisbr.core.API.API.server_url">server_url</a></code></li>
 <li><code><a title="apisbr.core.API.API.update_dateparser" href="../core/API.html#apisbr.core.API.API.update_dateparser">update_dateparser</a></code></li>
@@ -821,6 +865,7 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <h4><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados" href="#apisbr.api.IBGEAgregados.IBGEAgregados">IBGEAgregados</a></code></h4>
 <ul class="two-column">
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.agregados_dict" href="#apisbr.api.IBGEAgregados.IBGEAgregados.agregados_dict">agregados_dict</a></code></li>
+<li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.download_data" href="#apisbr.api.IBGEAgregados.IBGEAgregados.download_data">download_data</a></code></li>
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_data" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_data">get_data</a></code></li>
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_id" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_id">get_id</a></code></li>
 <li><code><a title="apisbr.api.IBGEAgregados.IBGEAgregados.get_id_agregado" href="#apisbr.api.IBGEAgregados.IBGEAgregados.get_id_agregado">get_id_agregado</a></code></li>
