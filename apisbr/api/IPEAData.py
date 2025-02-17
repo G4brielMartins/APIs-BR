@@ -82,7 +82,7 @@ class IPEAData(API):
     def get_data(self, identifier: str, level: str = None,
                  period: str = 'all') -> pd.DataFrame:
         """
-        Importa os dados da API como um data frame.
+        Importa os dados da API IPEA Data como um data frame.
 
         Parameters
         ----------

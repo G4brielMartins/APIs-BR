@@ -12,14 +12,15 @@ Assim, requisitar dados se torna enviável sem antes preparar uma lista de queri
 
 O APIsBR tem como objetivo padronizar o acesso a essas APIs. Ainda, métodos simples, com filtros de pesquisa integrados, agilizam a aprendizagem e fluxo de trabalho.
 
-As APIs atualmente sendo implementadas são:  
+As APIs atualmente implementadas são:  
 (✓) [Dados Abertos](https://dados.gov.br/swagger-ui/index.html)  
-(−) [IBGE Localidades](https://servicodados.ibge.gov.br/api/docs/localidades)  
-(−) [IBGE Agregados](https://servicodados.ibge.gov.br/api/docs/agregados?versao=3)  
+(✓) [IBGE Localidades](https://servicodados.ibge.gov.br/api/docs/localidades)  
+(✓) [IBGE Agregados](https://servicodados.ibge.gov.br/api/docs/agregados?versao=3)  
+(✓) [IPEA Data](https://www.ipea.gov.br/portal/categorias/2-uncategorised/1825-api)
 
 TODO:
 - Implementação de rotinas para tratar respostas inválidas do servidor
-- Mais opções de filtragem e seleção de dados
+- Cogitando implementação de requisição de arquivos via servidor FTP do IBGE
 - Ampliar catálogo de APIs
 
 Sugestões de APIs para implementação e outras funcionalidades são bem vindas! Se possuir algum comentário deste tipo, por favor abra uma issue.

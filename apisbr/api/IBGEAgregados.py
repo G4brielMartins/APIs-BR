@@ -9,6 +9,7 @@ import pandas as pd
 from ..core import API, is_similar_text
 from ..utils import invert_dict
 
+type JSON = dict[str]
 
 def _get_agregados_dict() -> dict[str, str]:
     """
@@ -159,7 +160,7 @@ class IBGEAgregados(API):
         id_variavel = variavel if variavel.isdigit() else self.get_id_variavel(variavel, id_agregado)
         return f"{id_agregado}-{id_variavel}"
     
-    def get_metadata(self, identifier: str) -> dict[str]:
+    def get_metadata(self, identifier: str) -> JSON:
         """
         Pesquisa os metadados referentes ao agregado de interesse.
 
@@ -170,8 +171,8 @@ class IBGEAgregados(API):
 
         Returns
         -------
-        dict[str]
-            Dicionário com os metadados.
+        JSON
+            Arquivo JSON com os metadados transformado em dicionário.
         """        
         id_agregado = identifier if identifier.isdigit() else self.get_id_agregado(identifier)
         
@@ -180,7 +181,53 @@ class IBGEAgregados(API):
     
     
     def get_data(self, identifier: str, level: str = 'N1', period: str = '-6', *,
-                 classify: Optional[dict[str]] = None) -> pd.DataFrame:
+                 classify: Optional[dict[str]] = None) -> pd.DataFrame|dict[str, pd.DataFrame]:
+        """
+        Importa os dados da API IBGE Agregados como um data frame.  
+        * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
+
+        Parameters
+        ----------
+        identifier : str
+            Título ou ID do agregado e variável de interesse.  
+            Segue os formatos:  
+            - [título agregado];[titulo var]  
+            - [ID agregado]-[ID var]  
+            Para pesquisar agregados ou variáveis disponíveis:  
+            - [palavras chave] -> Procura agregados que contenham as palavras no seu título  
+            - [título ou ID agregado] -> Lista as varíaveis disponíveis no agregado
+        level : str, optional
+            Nível de agregação dos dados (e.g. dados municipais, estaduais...).  
+            Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).  
+            Por padrão, assume o valor N1 (Brasil).
+        period : str, optional
+            Período de referência dos dados.  
+            Segue os formatos:  
+            - 2020|2022 -> Dados de 2020 e de 2022  
+            - 2020-2022 -> Dados de 2020 até 2022  
+            - -6 (padrão) -> Dados mais recentes (últimos seis períodos)  
+            - 202201-202206 -> Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)
+        classify : Optional[dict[str]], optional
+            Dicionário de classificadores para subdividir os dados.  
+            Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.  
+            Quando um classificador for omitido em [classify], não é realizada subdivisão.  
+            Por padrão, não realiza subdivisões.
+
+        Returns
+        -------
+        pd.DataFrame|dict[str, pd.DataFrame]
+            Retorna um data frame com os dados solicitados.  
+            Se [classify] for fornecido, retorna um dicionário com nome da variável + subdivisão como chave para os data frames.
+
+        Raises
+        ------
+        self.NoMatchFoundError
+            Erro de ausência de correspondência do agregado.  
+            Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.
+        ValueError
+            Erro de argumento inválido.  
+            Dá print nos valores disponíveis para o argumento inválido.
+        """        
         # ----- Input handler
         match identifier:
             case id_agreg_e_id_var if self.id_regex.fullmatch(id_agreg_e_id_var):
@@ -256,11 +303,30 @@ class IBGEAgregados(API):
         
         if classify is not None:
             class_dict = get_class_dict()
-            if not isinstance(classify, dict):
+            if (not isinstance(classify, dict)) or (len(classify) == 0):
                 raise ValueError(get_error_msg(class_dict))
             query += get_parametro_classificacao()
         
-        # Obtenção do data frame
+        # ----- Obtenção do data frame
+        # A série de for loops representa a navegação pelo JSON retornado pela API
+        # *Há uma forma de navegar por JSON trees com código mais limpo?
+        json = requests.get(query).json()
+    
+        df_dict = dict()
+        for variavel in json:
+            for classificacoes in variavel['resultados']:
+                df = pd.DataFrame()
+                for local in classificacoes['series']:              
+                    local_stamp = local['localidade']['nome']
+                    for periodo, valor in local['serie'].items():
+                        df.loc[local_stamp, periodo] = float(valor)
+                
+                class_stamp = str()
+                for categoria in classificacoes['classificacoes']:
+                    class_stamp += f" - {str(*categoria['categoria'].values())}"
+                var_stamp = variavel['variavel'] + class_stamp
+                df_dict[var_stamp] = df
         
-        print(query)
-        return requests.get(query).json()
+        if len(df_dict) == 1:
+            return [*df_dict.values()][0]
+        return df_dict

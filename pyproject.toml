@@ -1,6 +1,5 @@
 [project]
 name = "apis-br"
-version = "0.1.3"
 description = "A Python package for simplified requests in brazilian data APIs (e.g. IBGE Agregados)"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -15,6 +14,9 @@ dependencies = [
     "pandas>=2.2.3",
     "requests>=2.32.3",
 ]
+
+[tool.hatch.version]
+path = "apisbr/__init__.py"
 
 [dependency-groups]
 dev = [
@@ -41,4 +43,7 @@ build-backend = "hatchling.build"
 include = [
   "apisbr/*",
   "/tests"
+]
+exclude = [
+  "*.env"
 ]
