@@ -1,17 +1,49 @@
 [project]
-name = "apisbr"
-version = "0.1.0"
-description = "Add your description here"
+name = "apis-br"
+description = "A Python package for simplified requests in brazilian data APIs (e.g. IBGE Agregados)"
 readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["api", "brasil", "ibge", "agregados", "dados abertos"]
 requires-python = ">=3.12"
+authors = [
+  {name = "Gabriel Martins", email = "gbielsesc@gmail.com"}
+]
 dependencies = [
     "dateparser>=1.2.0",
-    "python-dotenv>=1.0.1",
+    "pandas>=2.2.3",
     "requests>=2.32.3",
 ]
 
+[tool.hatch.version]
+path = "apisbr/__init__.py"
+
 [dependency-groups]
 dev = [
+    "ipykernel>=6.29.5",
     "pdoc3>=0.11.5",
     "pytest>=8.3.4",
+    "python-dotenv>=1.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/G4brielMartins/apis-br/wiki"
+Documentation = "http://htmlpreview.github.io/?https://github.com/G4brielMartins/apis-br/blob/master/doc/apisbr/index.html"
+Repository = "https://github.com/G4brielMartins/apis-br"
+Issues = "https://github.com/G4brielMartins/apis-br/issues"
+
+[project.scripts]
+apisbr-doc = "doc:open_doc"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = [
+  "apisbr/*",
+  "/tests"
+]
+exclude = [
+  "*.env"
 ]

@@ -1,0 +1,57 @@
+N15 - Aglomeração Urbana
+N17 - Aglomerado Subnormal
+N131 - Amazônia Legal
+N134 - Amazônia Legal de Unidade da Federação
+N20 - Área de Divulgação da Amostra para Aglomerados Subnormais
+N1105 - Área de influência - PNSB
+N18 - Área de Ponderação
+N23 - Arranjo Populacional
+N102 - Bairro
+N123 - Bioma
+N1 - Brasil
+N1100 - Brasil, sem especificação de Unidade da Federação
+N130 - Capital/não capital de Unidade da Federação
+N151 - Categoria da Aglomeração Urbana
+N71 - Categoria Metropolitana
+N33 - Concentração Urbana
+N1124 - Coordenação Regional da Funai
+N124 - Corpo d'água
+N10 - Distrito
+N1102 - Estrangeiro
+N170 - Favela e Comunidade Urbana 2022
+N2 - Grande Região
+N122 - Grande Região - PIMES
+N1101 - Ignorado
+N8 - Mesorregião Geográfica
+N9 - Microrregião Geográfica
+N6 - Município
+N1011 - Municípios Costeiros
+N1013 - Municípios de Faixa de Fronteira
+N127 - Núcleo de desertificação
+N101 - País do Mercosul, Bolívia e Chile
+N128 - Praia
+N70 - Recortes Metropolitanos
+N25 - Região Geográfica Imediata
+N24 - Região Geográfica Intermediária
+N121 - Região Hidrográfica
+N14 - Região Integrada de Desenvolvimento
+N7 - Região Metropolitana
+N13 - Região Metropolitana e Subdivisão
+N132 - Semiárido
+N133 - Semiárido de Unidade da Federação
+N72 - Subcategoria Metropolitana
+N11 - Subdistrito
+N1125 - Terra Indígena
+N125 - Terra Indígena por Unidade da Federação
+N129 - Território da Cidadania
+N29 - Território de Identidade
+N1145 - Território Quilombola
+N145 - Território Quilombola por Unidade da Federação
+N1103 - Total
+N110 - Total das áreas - PME
+N103 - Total das áreas - POF
+N22 - Total dos municípios das capitais
+N21 - Total dos municípios das capitais da Grande Região
+N3 - Unidade da Federação
+N1104 - Unidade da Federação, sem especificação de Município
+N111 - Unidade Federativa do Mercosul, Bolívia e Chile

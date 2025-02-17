@@ -1,4 +1,10 @@
+import re
+from typing import Optional
 from os.path import join
+
+from pandas import DataFrame
+
+from .DateParser import DateParser
 
 class API():
     """
@@ -10,50 +16,61 @@ class API():
     NotImplementedError
         Provocado quando métodos essenciais e não implementados são chamados.
     """    
-    DATEPARSER_SETTINGS = {'DATE_ORDER': 'DMY', 'PREFER_DAY_OF_MONTH': 'last', 'PREFER_MONTH_OF_YEAR': 'last'}
-    """Configuração para o dateparser quando """
-    
-    server_url = ''
+    date_parser = DateParser()
+    """Parser de datas para uso interno de filtros e leitura de inputs."""
+    server_url = str()
     """URL do servidor da API."""
+    id_regex : re.Pattern = ''
+    """Regex para identifcar IDs dos conjuntos de dados."""
     
-    def get_id(self, title: str) -> str:
+    def __getitem__(self, title: str) -> str:
         """
-        Retorna o ID do conjunto de dados com nome equivalente a <title>.  
-        *Implementado nas classes filhas.
-        """
-        raise NotImplementedError
-    
-    def get_data(self, identifier: str) -> dict[str, bytes]:
-        """
-        Retorna um dicionário com os nomes dos conjuntos de dados como chaves e seu conteúdo em bytes.  
-        *Implementado nas classes filhas.
-        """
-        raise NotImplementedError
-    
-    def download_data(self, identifier: str, output_folder: str, /,
-                      data: dict[str, bytes] = None, **kwargs) -> None:
-        """
-        Baixa os arquivos retornados pelo método get_data(<identifier>) na pasta <output_folder>. 
+        Método alternativo de chamar a função self.get_id().  
+        * Suporta apenas o parâmetro [title], ignorando as opções extras de self.get_id()
 
         Parameters
         ----------
-        identifier : str
-            Identificador do conjunto de dados a ser procurado na API.
+        title : str
+            Título a ser procurado na API.
+
+        Returns
+        -------
+        str
+            ID do conjunto de dados encontrado na API.
+        """
+        return self.get_id(title)
+    
+    def get_id(self, title: str) -> str:
+        """
+        Retorna o ID do conjunto de dados com nome equivalente a [title].  
+        *Implementado nas classes filhas.
+        """
+        raise NotImplementedError
+    
+    def get_data(self, identifier: str) -> DataFrame:
+        """
+        Retorna um data frame com os dados requisitados.  
+        * Implementado nas classes filhas.
+        """
+        raise NotImplementedError
+    
+    def download_data(self, data: dict[str, bytes], output_folder: str) -> None:
+        """
+        Salva os arquivos no dicionários [data] na pasta [output_folder].  
+        * A lógica para extrair dados da API é implementada nas classes filhas.
+
+        Parameters
+        ----------
+        data : dict
+            Dicionário com os arquivos (bytes) a serem salvos. 
         output_folder : str
             Pasta em que os arquivos serão salvos.
-        data : dict
-            Dicionário com os arquivos (bytes) a serem salvos.  
-            Quando empregado, get_data() não é chamado.
-        **kwargs : 
-            Outros parâmetros a serem passados para get_data().
         """
-        if data is None:
-            data = self.get_data(identifier, **kwargs)
         for name, file_bytes in data.items():
             with open(join(output_folder, name), 'wb') as f:
                 f.write(file_bytes)
     
-    def set_dateparser_settings(self, parser_settings: dict) -> None:
+    def update_dateparser(self, new_settings: dict[str, str]) -> None:
         """
         Atualiza as configurações utilizadas pelo parser de datas.  
         ** DEVE SER UTILIZADO APENAS QUANDO OS FILTROS DE DATA NÃO FUNCIONAREM CORRETAMENTE **
@@ -64,14 +81,14 @@ class API():
             Dicionário contendo as configurações do parser.  
             São utilizadas as [opções do dataparser](https://dateparser.readthedocs.io/en/latest/settings.html).
         """        
-        self.DATE_SETTINGS = parser_settings
+        self.date_parser.set_settings(new_settings)
     
-    class NoMatchFound(Exception):
+    class NoMatchFoundError(Exception):
         """
         Erro chamado para indicar falha em encontrar correspondência exata com o termo pesquisado.  
         O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pesquisado.
         """    
-        def __init__(self, semelhantes: dict = None):
+        def __init__(self, semelhantes: Optional[dict] = None):
             self.semelhantes = semelhantes
             mensagem = "Nenhuma correspondência encontrada."
             

@@ -1,2 +1,1 @@
-from .API import API
-from .DadosAbertos import DadosAbertos
+__version__ = "0.2.0"
