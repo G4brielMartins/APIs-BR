@@ -51,7 +51,7 @@ def _get_niveis_geo_dict() -> dict[str, str]:
     return localidades_dict
 
 
-def _process_identifier_input(identifier, api) -> tuple[str]:
+def _process_identifier_input(identifier: str, api) -> tuple[str]:
     """
     Processa o input de identificador.
 
@@ -67,21 +67,16 @@ def _process_identifier_input(identifier, api) -> tuple[str]:
     tuple[str]
         id_agregado, id_variavel
     """    
-    match identifier:
-        case id_agreg_e_id_var if api.id_regex.fullmatch(id_agreg_e_id_var):
-            id_agregado, id_variavel = id_agreg_e_id_var.split('-')
-
-        case id_agregado if id_agregado.isdigit():
-            id_agregado, id_variavel = id_agregado, None
-            
-        case titulo_agreg_e_titulo_var if titulo_agreg_e_titulo_var.find(';') > -1:
-            id_agregado, id_variavel = api.get_id(titulo_agreg_e_titulo_var).split('-')
-            
-        case titulo_agregado if titulo_agregado.find(';') == -1:
-            id_agregado, id_variavel = api.get_id(titulo_agregado), None
-
-        case _:
-            raise ValueError("O [identifier] apresenta formato inválido.")    
+    try:
+        match identifier.split(';'):
+            case [agregado, variavel]:
+                id_agregado, id_variavel = api.get_id(identifier).split(';')
+            case [agregado]:
+                id_agregado, id_variavel = api.get_id(agregado), None
+            case _:
+                raise ValueError
+    except ValueError:
+        raise ValueError("O [identifier] apresenta formato inválido.")
     return id_agregado, id_variavel
 
 
@@ -90,7 +85,7 @@ class IBGEAgregados(API):
     Wrapper para auxiliar com requisições na [API IBGE Agregados](https://servicodados.ibge.gov.br/api/docs/agregados?versao=3).
     """
     server_url = "https://servicodados.ibge.gov.br/api/v3/agregados"
-    id_regex = re.compile(r"[0-9]{4}-[0-9]*")
+    id_regex = re.compile(r"[0-9]{4};[0-9]*")
     agregados_dict = _get_agregados_dict()
     """Dicionário com os agregados disponíveis (chaves) e seus IDs (valores)."""
     niveis_geo_dict = _get_niveis_geo_dict()
@@ -157,7 +152,7 @@ class IBGEAgregados(API):
         for var_title in title.split('|'):
             for variavel in json['variaveis']:
                 if var_title == variavel['nome']:
-                    out_str += variavel['id'] + "|"
+                    out_str += str(variavel['id']) + "|"
                 if is_similar_text(var_title, variavel['nome']):
                     key = f"Variavel - {variavel['nome']}"
                     id_ = f"{agregado}-{variavel['id']}"
@@ -199,7 +194,7 @@ class IBGEAgregados(API):
             return id_agregado
         
         id_variavel = variavel if variavel.isdigit() else self.get_id_variavel(variavel, id_agregado)
-        return f"{id_agregado}-{id_variavel}"
+        return f"{id_agregado};{id_variavel}"
     
     def get_metadata(self, identifier: str) -> JSON:
         """
@@ -222,7 +217,7 @@ class IBGEAgregados(API):
     
     
     def get_data(self, identifier: str, level: str = 'N1', period: str = '-6', *,
-                 classify: Optional[dict[str]] = None) -> pd.DataFrame|dict[str, pd.DataFrame]:
+                 classify: Optional[dict[str]] = None) -> pd.DataFrame:
         """
         Importa os dados da API IBGE Agregados como um data frame.  
         * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
@@ -231,9 +226,7 @@ class IBGEAgregados(API):
         ----------
         identifier : str
             Título ou ID do agregado e variável de interesse.  
-            Segue os formatos:  
-            - [título agregado];[titulo var]  
-            - [ID agregado]-[ID var]  
+            Segue o formato "[título_ou_id_agregado];[titulo_ou_id_var]"  
             Para pesquisar agregados ou variáveis disponíveis:  
             - [palavras chave] -> Procura agregados que contenham as palavras no seu título  
             - [título ou ID agregado] -> Lista as varíaveis disponíveis no agregado
@@ -257,8 +250,7 @@ class IBGEAgregados(API):
         Returns
         -------
         pd.DataFrame|dict[str, pd.DataFrame]
-            Retorna um data frame com os dados solicitados.  
-            Se [classify] for fornecido, retorna um dicionário com nome da variável + subdivisão como chave para os data frames.
+            Retorna um data frame com os dados solicitados.
 
         Raises
         ------
@@ -336,7 +328,7 @@ class IBGEAgregados(API):
         
         # ----- Obtenção do data frame
         # A série de for loops representa a navegação pelo JSON retornado pela API
-        # *Há uma forma de navegar por JSON trees com código mais limpo?
+        # * Há uma forma de navegar por JSON trees com código mais limpo?
         json = requests.get(query).json()
     
         df_dict = dict()
@@ -353,10 +345,7 @@ class IBGEAgregados(API):
                     class_stamp += f" - {str(*categoria['categoria'].values())}"
                 var_stamp = variavel['variavel'] + class_stamp
                 df_dict[var_stamp] = df
-        
-        if len(df_dict) == 1:
-            return [*df_dict.values()][0]
-        return df_dict
+        return pd.concat(df_dict, axis=1)
     
     def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
         """
@@ -368,19 +357,11 @@ class IBGEAgregados(API):
             Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs :
+        **kwargs** :   
             Parâmetros passados à get_data() para filtrar os dados encontrados.
-        """       
-        def export_csv(name: str, df: pd.DataFrame):
-            file_name = format_to_path(name) + '.csv'
+        """        
+        df = self.get_data(identifier, **kwargs)
+        for var, data in df.T.groupby(level=0):
+            file_name = format_to_path(var) + '.csv'
             path = os.path.join(output_folder, file_name)
-            df.to_csv(path)
-        
-        data = self.get_data(identifier, **kwargs)
-        if isinstance(data, dict):
-            for nome, df in data:
-                export_csv(nome, df)
-        else:
-            id_agregado, _ = _process_identifier_input(identifier, self)
-            nome = invert_dict(self.agregados_dict)[id_agregado]
-            export_csv(nome, data)
+            data.to_csv(path)

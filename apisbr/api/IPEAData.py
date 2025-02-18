@@ -43,7 +43,7 @@ class IPEAData(API):
     """
     Wrapper para executar requisições na API do [IPEAData](http://www.ipeadata.gov.br/)
     """    
-    server_url = "http://www.ipeadata.gov.br/api/odata4/"
+    server_url = "http://www.ipeadata.gov.br/api/odata4"
     id_regex = re.compile(r"[0-Z]+(_[0-Z]+)+")
     series_dict = _get_series_dict()
     """Dicionário com as séries de dados disponíveis (chaves) e seus IDs (valores)."""
@@ -131,8 +131,10 @@ class IPEAData(API):
         if level is not None:
             df = df[df['Nivel'] == level.title()]
             df = df.pivot(columns='Data', index='Territorio', values='Valor')
-
-        return df
+            
+        var_name_json = requests.get(self.server_url+f"/Metadados('{identifier}')/").json()
+        var_name = var_name_json['value'][0]['SERNOME']
+        return pd.concat({var_name: df}, axis=1)
     
     def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
         """
@@ -148,6 +150,6 @@ class IPEAData(API):
             Parâmetros passados à get_data() para filtrar os dados encontrados.
         """        
         df = self.get_data(identifier, **kwargs)
-        file_name = format_to_path(identifier) + '.csv'
+        file_name = format_to_path(str(df.columns.get_level_values(0)[0])) + '.csv'
         path = join_path(output_folder, file_name)
         df.to_csv(path)

@@ -58,7 +58,7 @@ el.replaceWith(d);
     &#34;&#34;&#34;
     Wrapper para executar requisições na API do [IPEAData](http://www.ipeadata.gov.br/)
     &#34;&#34;&#34;    
-    server_url = &#34;http://www.ipeadata.gov.br/api/odata4/&#34;
+    server_url = &#34;http://www.ipeadata.gov.br/api/odata4&#34;
     id_regex = re.compile(r&#34;[0-Z]+(_[0-Z]+)+&#34;)
     series_dict = _get_series_dict()
     &#34;&#34;&#34;Dicionário com as séries de dados disponíveis (chaves) e seus IDs (valores).&#34;&#34;&#34;
@@ -146,8 +146,10 @@ el.replaceWith(d);
         if level is not None:
             df = df[df[&#39;Nivel&#39;] == level.title()]
             df = df.pivot(columns=&#39;Data&#39;, index=&#39;Territorio&#39;, values=&#39;Valor&#39;)
-
-        return df
+            
+        var_name_json = requests.get(self.server_url+f&#34;/Metadados(&#39;{identifier}&#39;)/&#34;).json()
+        var_name = var_name_json[&#39;value&#39;][0][&#39;SERNOME&#39;]
+        return pd.concat({var_name: df}, axis=1)
     
     def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
         &#34;&#34;&#34;
@@ -163,7 +165,7 @@ el.replaceWith(d);
             Parâmetros passados à get_data() para filtrar os dados encontrados.
         &#34;&#34;&#34;        
         df = self.get_data(identifier, **kwargs)
-        file_name = format_to_path(identifier) + &#39;.csv&#39;
+        file_name = format_to_path(str(df.columns.get_level_values(0)[0])) + &#39;.csv&#39;
         path = join_path(output_folder, file_name)
         df.to_csv(path)</code></pre>
 </details>
@@ -207,7 +209,7 @@ el.replaceWith(d);
         Parâmetros passados à get_data() para filtrar os dados encontrados.
     &#34;&#34;&#34;        
     df = self.get_data(identifier, **kwargs)
-    file_name = format_to_path(identifier) + &#39;.csv&#39;
+    file_name = format_to_path(str(df.columns.get_level_values(0)[0])) + &#39;.csv&#39;
     path = join_path(output_folder, file_name)
     df.to_csv(path)</code></pre>
 </details>
@@ -282,8 +284,10 @@ Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
     if level is not None:
         df = df[df[&#39;Nivel&#39;] == level.title()]
         df = df.pivot(columns=&#39;Data&#39;, index=&#39;Territorio&#39;, values=&#39;Valor&#39;)
-
-    return df</code></pre>
+        
+    var_name_json = requests.get(self.server_url+f&#34;/Metadados(&#39;{identifier}&#39;)/&#34;).json()
+    var_name = var_name_json[&#39;value&#39;][0][&#39;SERNOME&#39;]
+    return pd.concat({var_name: df}, axis=1)</code></pre>
 </details>
 <div class="desc"><p>Importa os dados da API IPEA Data como um data frame.</p>
 <h2 id="parameters">Parameters</h2>

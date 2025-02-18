@@ -162,7 +162,7 @@ el.replaceWith(d);
         return recursos_dict
     
     def get_data(self, identifier: str, period: str = &#39;all&#39;,
-                 **kwargs) -&gt; pd.DataFrame|dict[str, pd.DataFrame]:
+                 **kwargs) -&gt; pd.DataFrame:
         &#34;&#34;&#34;
         Importa os dados da API como um data frame.
 
@@ -183,8 +183,7 @@ el.replaceWith(d);
         Returns
         -------
         pd.DataFrame|dict[str, pd.DataFrame]
-            Data frame do conjunto de dados selecionado.  
-            Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.
+            Data frame do conjunto de dados selecionado.
         &#34;&#34;&#34;        
         recursos = self.list_recursos(identifier, period=period, file_type=&#39;csv&#39;)
         if len(recursos) == 1:
@@ -193,7 +192,7 @@ el.replaceWith(d);
         dfs = dict()
         for nome, link in recursos.items():
             dfs[nome] = pd.read_csv(link, **kwargs)
-        return dfs
+        return pd.concat(dfs, axis=1)
     
     def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
         &#34;&#34;&#34;
@@ -205,7 +204,7 @@ el.replaceWith(d);
             Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs :
+        **kwargs** :  
             Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.
         &#34;&#34;&#34;
         data = dict()
@@ -244,7 +243,7 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
         Título exato ou ID do conjunto de dados de interesse.
     output_folder : str
         Caminho da pasta onde os dados devem ser salvos.
-    **kwargs :
+    **kwargs** :  
         Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.
     &#34;&#34;&#34;
     data = dict()
@@ -260,11 +259,11 @@ Pode ser obtido gratuitamente pelo <a href="https://dados.gov.br/dados/conteudo/
 <dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
 <dd>Caminho da pasta onde os dados devem ser salvos.</dd>
 </dl>
-<p>**kwargs :
+<p><strong>kwargs</strong> :<br>
 Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.</p></div>
 </dd>
 <dt id="apisbr.api.DadosAbertos.DadosAbertos.get_data"><code class="name flex">
-<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str, period: str = 'all', **kwargs) ‑> pandas.core.frame.DataFrame | dict[str, pandas.core.frame.DataFrame]</span>
+<span>def <span class="ident">get_data</span></span>(<span>self, identifier: str, period: str = 'all', **kwargs) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -272,7 +271,7 @@ Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.</p
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_data(self, identifier: str, period: str = &#39;all&#39;,
-             **kwargs) -&gt; pd.DataFrame|dict[str, pd.DataFrame]:
+             **kwargs) -&gt; pd.DataFrame:
     &#34;&#34;&#34;
     Importa os dados da API como um data frame.
 
@@ -293,8 +292,7 @@ Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.</p
     Returns
     -------
     pd.DataFrame|dict[str, pd.DataFrame]
-        Data frame do conjunto de dados selecionado.  
-        Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.
+        Data frame do conjunto de dados selecionado.
     &#34;&#34;&#34;        
     recursos = self.list_recursos(identifier, period=period, file_type=&#39;csv&#39;)
     if len(recursos) == 1:
@@ -303,7 +301,7 @@ Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.</p
     dfs = dict()
     for nome, link in recursos.items():
         dfs[nome] = pd.read_csv(link, **kwargs)
-    return dfs</code></pre>
+    return pd.concat(dfs, axis=1)</code></pre>
 </details>
 <div class="desc"><p>Importa os dados da API como um data frame.</p>
 <h2 id="parameters">Parameters</h2>
@@ -323,8 +321,7 @@ Configurações extras para a função <a href="https://pandas.pydata.org/pandas
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>pd.DataFrame|dict[str, pd.DataFrame]</code></dt>
-<dd>Data frame do conjunto de dados selecionado.<br>
-Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.</dd>
+<dd>Data frame do conjunto de dados selecionado.</dd>
 </dl></div>
 </dd>
 <dt id="apisbr.api.DadosAbertos.DadosAbertos.get_id"><code class="name flex">

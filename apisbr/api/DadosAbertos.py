@@ -114,7 +114,7 @@ class DadosAbertos(API):
         return recursos_dict
     
     def get_data(self, identifier: str, period: str = 'all',
-                 **kwargs) -> pd.DataFrame|dict[str, pd.DataFrame]:
+                 **kwargs) -> pd.DataFrame:
         """
         Importa os dados da API como um data frame.
 
@@ -135,8 +135,7 @@ class DadosAbertos(API):
         Returns
         -------
         pd.DataFrame|dict[str, pd.DataFrame]
-            Data frame do conjunto de dados selecionado.  
-            Caso mais de um recurso seja encontrado, retorna um dicionário de data frames.
+            Data frame do conjunto de dados selecionado.
         """        
         recursos = self.list_recursos(identifier, period=period, file_type='csv')
         if len(recursos) == 1:
@@ -145,7 +144,7 @@ class DadosAbertos(API):
         dfs = dict()
         for nome, link in recursos.items():
             dfs[nome] = pd.read_csv(link, **kwargs)
-        return dfs
+        return pd.concat(dfs, axis=1)
     
     def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
         """
@@ -157,7 +156,7 @@ class DadosAbertos(API):
             Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs :
+        **kwargs** :  
             Parâmetros passados à list_recursos() para filtrar os arquivos encontrados.
         """
         data = dict()

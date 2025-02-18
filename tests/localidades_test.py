@@ -1,11 +1,11 @@
 import pytest
 
-from apisbr.api import LocalidadesIBGE
+from apisbr.api import IBGELocalidades
 
-api_localidades = LocalidadesIBGE()
+api_localidades = IBGELocalidades()
 
 @pytest.mark.parametrize("obj,key,id_",[
-    (LocalidadesIBGE, "Cabixi - RO", 1100031),
+    (IBGELocalidades, "Cabixi - RO", 1100031),
     (api_localidades, "Espigão D'Oeste - RO", 1100098)
     ])
 class TestIdDict():

@@ -16,4 +16,6 @@ wheels/
 *.env
 
 # Other
-tests/*.ipynb
+tests/notebooks
+*.ipynb
+*.csv

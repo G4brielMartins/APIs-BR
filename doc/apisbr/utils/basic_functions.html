@@ -44,42 +44,6 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="apisbr.utils.basic_functions.format_to_path"><code class="name flex">
-<span>def <span class="ident">format_to_path</span></span>(<span>text: str) ‑> str</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def format_to_path(text: str) -&gt; str:
-    &#34;&#34;&#34;
-    Formata o texto para facilitar referências ao seu caminho.
-
-    Parameters
-    ----------
-    text : str
-        Texto a formatar.
-
-    Returns
-    -------
-    str
-        Texto sem espaços ou acentos.
-    &#34;&#34;&#34;    
-    return remove_accents(text.replace(&#39; &#39;, &#39;_&#39;))</code></pre>
-</details>
-<div class="desc"><p>Formata o texto para facilitar referências ao seu caminho.</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>text</code></strong> :&ensp;<code>str</code></dt>
-<dd>Texto a formatar.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>str</code></dt>
-<dd>Texto sem espaços ou acentos.</dd>
-</dl></div>
-</dd>
 <dt id="apisbr.utils.basic_functions.invert_dict"><code class="name flex">
 <span>def <span class="ident">invert_dict</span></span>(<span>dict_: dict) ‑> dict</span>
 </code></dt>
@@ -119,44 +83,6 @@ el.replaceWith(d);
 <dd>Dicionário invertido.</dd>
 </dl></div>
 </dd>
-<dt id="apisbr.utils.basic_functions.remove_accents"><code class="name flex">
-<span>def <span class="ident">remove_accents</span></span>(<span>text: str) ‑> str</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def remove_accents(text: str) -&gt; str:
-    &#34;&#34;&#34;
-    Remove os acentos do texto.
-
-    Parameters
-    ----------
-    text : str
-        Texto a formatar.
-
-    Returns
-    -------
-    str
-        Texto sem acentos.
-    &#34;&#34;&#34;    
-    from unicodedata import normalize, category
-    
-    return &#39;&#39;.join(c for c in normalize(&#39;NFD&#39;, text) if category(c) != &#39;Mn&#39;)</code></pre>
-</details>
-<div class="desc"><p>Remove os acentos do texto.</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>text</code></strong> :&ensp;<code>str</code></dt>
-<dd>Texto a formatar.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>str</code></dt>
-<dd>Texto sem acentos.</dd>
-</dl></div>
-</dd>
 </dl>
 </section>
 <section>
@@ -174,9 +100,7 @@ el.replaceWith(d);
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="apisbr.utils.basic_functions.format_to_path" href="#apisbr.utils.basic_functions.format_to_path">format_to_path</a></code></li>
 <li><code><a title="apisbr.utils.basic_functions.invert_dict" href="#apisbr.utils.basic_functions.invert_dict">invert_dict</a></code></li>
-<li><code><a title="apisbr.utils.basic_functions.remove_accents" href="#apisbr.utils.basic_functions.remove_accents">remove_accents</a></code></li>
 </ul>
 </li>
 </ul>
