@@ -95,28 +95,31 @@ el.replaceWith(d);
         &#34;&#34;&#34;
         raise NotImplementedError
     
-    def get_data(self, identifier: str) -&gt; DataFrame:
+    def get_data(self, identifier: str) -&gt; pd.DataFrame:
         &#34;&#34;&#34;
         Retorna um data frame com os dados requisitados.  
         * Implementado nas classes filhas.
         &#34;&#34;&#34;
         raise NotImplementedError
     
-    def download_data(self, data: dict[str, bytes], output_folder: str) -&gt; None:
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
         &#34;&#34;&#34;
-        Salva os arquivos no dicionários [data] na pasta [output_folder].  
-        * A lógica para extrair dados da API é implementada nas classes filhas.
+        Faz o download do conjunto de dados encontrado em [output_folder].
 
         Parameters
         ----------
-        data : dict
-            Dicionário com os arquivos (bytes) a serem salvos. 
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
-            Pasta em que os arquivos serão salvos.
-        &#34;&#34;&#34;
-        for name, file_bytes in data.items():
-            with open(join(output_folder, name), &#39;wb&#39;) as f:
-                f.write(file_bytes)
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs** :   
+            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        &#34;&#34;&#34;        
+        df = self.get_data(identifier, **kwargs)
+        for var, data in df.T.groupby(level=0):
+            file_name = format_to_path(var) + &#39;.csv&#39;
+            path = os.path.join(output_folder, file_name)
+            data.to_csv(path)
     
     def update_dateparser(self, new_settings: dict[str, str]) -&gt; None:
         &#34;&#34;&#34;
@@ -183,38 +186,42 @@ O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pe
 <h3>Methods</h3>
 <dl>
 <dt id="apisbr.core.API.API.download_data"><code class="name flex">
-<span>def <span class="ident">download_data</span></span>(<span>self, data: dict[str, bytes], output_folder: str) ‑> None</span>
+<span>def <span class="ident">download_data</span></span>(<span>self, identifier: str, output_folder: str, **kwargs) ‑> None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def download_data(self, data: dict[str, bytes], output_folder: str) -&gt; None:
+<pre><code class="python">def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
     &#34;&#34;&#34;
-    Salva os arquivos no dicionários [data] na pasta [output_folder].  
-    * A lógica para extrair dados da API é implementada nas classes filhas.
+    Faz o download do conjunto de dados encontrado em [output_folder].
 
     Parameters
     ----------
-    data : dict
-        Dicionário com os arquivos (bytes) a serem salvos. 
+    identifier : str
+        Título exato ou ID do conjunto de dados de interesse.
     output_folder : str
-        Pasta em que os arquivos serão salvos.
-    &#34;&#34;&#34;
-    for name, file_bytes in data.items():
-        with open(join(output_folder, name), &#39;wb&#39;) as f:
-            f.write(file_bytes)</code></pre>
+        Caminho da pasta onde os dados devem ser salvos.
+    **kwargs** :   
+        Parâmetros passados à get_data() para filtrar os dados encontrados.
+    &#34;&#34;&#34;        
+    df = self.get_data(identifier, **kwargs)
+    for var, data in df.T.groupby(level=0):
+        file_name = format_to_path(var) + &#39;.csv&#39;
+        path = os.path.join(output_folder, file_name)
+        data.to_csv(path)</code></pre>
 </details>
-<div class="desc"><p>Salva os arquivos no dicionários [data] na pasta [output_folder].<br>
-* A lógica para extrair dados da API é implementada nas classes filhas.</p>
+<div class="desc"><p>Faz o download do conjunto de dados encontrado em [output_folder].</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
-<dt><strong><code>data</code></strong> :&ensp;<code>dict</code></dt>
-<dd>Dicionário com os arquivos (bytes) a serem salvos.</dd>
+<dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
+<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
 <dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
-<dd>Pasta em que os arquivos serão salvos.</dd>
-</dl></div>
+<dd>Caminho da pasta onde os dados devem ser salvos.</dd>
+</dl>
+<p><strong>kwargs</strong> : <br>
+Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
 </dd>
 <dt id="apisbr.core.API.API.get_data"><code class="name flex">
 <span>def <span class="ident">get_data</span></span>(<span>self, identifier: str) ‑> pandas.core.frame.DataFrame</span>
@@ -224,7 +231,7 @@ O atributo [semelhantes] pode ser acessado para obter resultados próximos ao pe
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_data(self, identifier: str) -&gt; DataFrame:
+<pre><code class="python">def get_data(self, identifier: str) -&gt; pd.DataFrame:
     &#34;&#34;&#34;
     Retorna um data frame com os dados requisitados.  
     * Implementado nas classes filhas.

@@ -305,6 +305,13 @@ el.replaceWith(d);
         # * Há uma forma de navegar por JSON trees com código mais limpo?
         json = requests.get(query).json()
     
+        valores_especiais = {
+            &#39;-&#39;: 0., # Dado numérico igual a zero não resultante de arredondamento
+            &#39;..&#39;: np.nan, # Não se aplica dado numérico
+            &#39;...&#39;: np.nan, # Dado numérico não disponível
+            &#39;X&#39;: np.nan # Dado numérico omitido a fim de evitar a individualização da informação
+        }
+    
         df_dict = dict()
         for variavel in json:
             for classificacoes in variavel[&#39;resultados&#39;]:
@@ -312,7 +319,10 @@ el.replaceWith(d);
                 for local in classificacoes[&#39;series&#39;]:              
                     local_stamp = local[&#39;localidade&#39;][&#39;nome&#39;]
                     for periodo, valor in local[&#39;serie&#39;].items():
-                        df.loc[local_stamp, periodo] = float(valor)
+                        try:
+                            df.loc[local_stamp, periodo] = float(valor)
+                        except ValueError:
+                            df.loc[local_stamp, period] = valores_especiais[valor]
                 
                 class_stamp = str()
                 for categoria in classificacoes[&#39;classificacoes&#39;]:
@@ -328,17 +338,31 @@ el.replaceWith(d);
         Parameters
         ----------
         identifier : str
-            Título exato ou ID do conjunto de dados de interesse.
+            Título ou ID do agregado e variável de interesse.  
+            Segue o formato &#34;[título_ou_id_agregado];[titulo_ou_id_var]&#34;  
+            Para pesquisar agregados ou variáveis disponíveis:  
+            - [palavras chave] -&gt; Procura agregados que contenham as palavras no seu título  
+            - [título ou ID agregado] -&gt; Lista as varíaveis disponíveis no agregado
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs** :   
-            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        level : str, optional
+            Nível de agregação dos dados (e.g. dados municipais, estaduais...).  
+            Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).  
+            Por padrão, assume o valor N1 (Brasil).
+        period : str, optional
+            Período de referência dos dados.  
+            Segue os formatos:  
+            - 2020|2022 -&gt; Dados de 2020 e de 2022  
+            - 2020-2022 -&gt; Dados de 2020 até 2022  
+            - -6 (padrão) -&gt; Dados mais recentes (últimos seis períodos)  
+            - 202201-202206 -&gt; Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)
+        classify : Optional[dict[str]], optional
+            Dicionário de classificadores para subdividir os dados.  
+            Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
+            Quando um classificador for omitido em [classify], não é realizada subdivisão.  
+            Por padrão, não realiza subdivisões.
         &#34;&#34;&#34;        
-        df = self.get_data(identifier, **kwargs)
-        for var, data in df.T.groupby(level=0):
-            file_name = format_to_path(var) + &#39;.csv&#39;
-            path = os.path.join(output_folder, file_name)
-            data.to_csv(path)</code></pre>
+        super().download_data(identifier, output_folder, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Wrapper para auxiliar com requisições na <a href="https://servicodados.ibge.gov.br/api/docs/agregados?versao=3">API IBGE Agregados</a>.</p></div>
 <h3>Ancestors</h3>
@@ -373,28 +397,60 @@ el.replaceWith(d);
     Parameters
     ----------
     identifier : str
-        Título exato ou ID do conjunto de dados de interesse.
+        Título ou ID do agregado e variável de interesse.  
+        Segue o formato &#34;[título_ou_id_agregado];[titulo_ou_id_var]&#34;  
+        Para pesquisar agregados ou variáveis disponíveis:  
+        - [palavras chave] -&gt; Procura agregados que contenham as palavras no seu título  
+        - [título ou ID agregado] -&gt; Lista as varíaveis disponíveis no agregado
     output_folder : str
         Caminho da pasta onde os dados devem ser salvos.
-    **kwargs** :   
-        Parâmetros passados à get_data() para filtrar os dados encontrados.
+    level : str, optional
+        Nível de agregação dos dados (e.g. dados municipais, estaduais...).  
+        Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).  
+        Por padrão, assume o valor N1 (Brasil).
+    period : str, optional
+        Período de referência dos dados.  
+        Segue os formatos:  
+        - 2020|2022 -&gt; Dados de 2020 e de 2022  
+        - 2020-2022 -&gt; Dados de 2020 até 2022  
+        - -6 (padrão) -&gt; Dados mais recentes (últimos seis períodos)  
+        - 202201-202206 -&gt; Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)
+    classify : Optional[dict[str]], optional
+        Dicionário de classificadores para subdividir os dados.  
+        Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
+        Quando um classificador for omitido em [classify], não é realizada subdivisão.  
+        Por padrão, não realiza subdivisões.
     &#34;&#34;&#34;        
-    df = self.get_data(identifier, **kwargs)
-    for var, data in df.T.groupby(level=0):
-        file_name = format_to_path(var) + &#39;.csv&#39;
-        path = os.path.join(output_folder, file_name)
-        data.to_csv(path)</code></pre>
+    super().download_data(identifier, output_folder, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Faz o download do conjunto de dados encontrado em [output_folder].</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>identifier</code></strong> :&ensp;<code>str</code></dt>
-<dd>Título exato ou ID do conjunto de dados de interesse.</dd>
+<dd>Título ou ID do agregado e variável de interesse.<br>
+Segue o formato "[título_ou_id_agregado];[titulo_ou_id_var]"<br>
+Para pesquisar agregados ou variáveis disponíveis:<br>
+- [palavras chave] -&gt; Procura agregados que contenham as palavras no seu título<br>
+- [título ou ID agregado] -&gt; Lista as varíaveis disponíveis no agregado</dd>
 <dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
 <dd>Caminho da pasta onde os dados devem ser salvos.</dd>
-</dl>
-<p><strong>kwargs</strong> : <br>
-Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
+<dt><strong><code>level</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Nível de agregação dos dados (e.g. dados municipais, estaduais&hellip;).<br>
+Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).<br>
+Por padrão, assume o valor N1 (Brasil).</dd>
+<dt><strong><code>period</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Período de referência dos dados.<br>
+Segue os formatos:<br>
+- 2020|2022 -&gt; Dados de 2020 e de 2022<br>
+- 2020-2022 -&gt; Dados de 2020 até 2022<br>
+- -6 (padrão) -&gt; Dados mais recentes (últimos seis períodos)<br>
+- 202201-202206 -&gt; Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)</dd>
+<dt><strong><code>classify</code></strong> :&ensp;<code>Optional[dict[str]]</code>, optional</dt>
+<dd>Dicionário de classificadores para subdividir os dados.<br>
+Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.<br>
+Quando um classificador for omitido em [classify], não é realizada subdivisão.<br>
+Por padrão, não realiza subdivisões.</dd>
+</dl></div>
 </dd>
 <dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_data"><code class="name flex">
 <span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None) ‑> pandas.core.frame.DataFrame</span>
@@ -519,6 +575,13 @@ Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
     # * Há uma forma de navegar por JSON trees com código mais limpo?
     json = requests.get(query).json()
 
+    valores_especiais = {
+        &#39;-&#39;: 0., # Dado numérico igual a zero não resultante de arredondamento
+        &#39;..&#39;: np.nan, # Não se aplica dado numérico
+        &#39;...&#39;: np.nan, # Dado numérico não disponível
+        &#39;X&#39;: np.nan # Dado numérico omitido a fim de evitar a individualização da informação
+    }
+
     df_dict = dict()
     for variavel in json:
         for classificacoes in variavel[&#39;resultados&#39;]:
@@ -526,7 +589,10 @@ Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
             for local in classificacoes[&#39;series&#39;]:              
                 local_stamp = local[&#39;localidade&#39;][&#39;nome&#39;]
                 for periodo, valor in local[&#39;serie&#39;].items():
-                    df.loc[local_stamp, periodo] = float(valor)
+                    try:
+                        df.loc[local_stamp, periodo] = float(valor)
+                    except ValueError:
+                        df.loc[local_stamp, period] = valores_especiais[valor]
             
             class_stamp = str()
             for categoria in classificacoes[&#39;classificacoes&#39;]:

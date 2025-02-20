@@ -146,10 +146,14 @@ class IPEAData(API):
             Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs :
-            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        period : str, optional
+            Filtro de período em que os recursos foram publicados.  
+            *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+            Exemplos de uso:  
+            - '2021' : procura por recursos publicados em 2021  
+            - '2019-2021' : procura por recursos publicados entre 2019 e 2021  
+            - 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+        level : str, optional
+            Agrupa os dados pelo [level] de agregação.
         """        
-        df = self.get_data(identifier, **kwargs)
-        file_name = format_to_path(str(df.columns.get_level_values(0)[0])) + '.csv'
-        path = join_path(output_folder, file_name)
-        df.to_csv(path)
+        super().download_data(identifier, output_folder, **kwargs)

@@ -1,11 +1,12 @@
 import re
-import datetime as dt
+import os
 from urllib.parse import quote
 
 import requests
 import pandas as pd
 
 from ..core import API, is_similar_text, parse_period_input
+from ..utils import format_to_path
 
 class DadosAbertos(API):
     """
@@ -162,4 +163,7 @@ class DadosAbertos(API):
         data = dict()
         for nome, link in self.list_recursos(identifier, **kwargs).items():
             data[nome] = requests.get(link).content
-        super().download_data(data, output_folder)
+        for nome, file_bytes in data.items():
+            file_name = format_to_path(nome)
+            with open(os.path.join(output_folder, file_name), 'wb') as f:
+                f.write(file_bytes)

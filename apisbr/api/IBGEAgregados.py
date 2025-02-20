@@ -5,6 +5,7 @@ from typing import Optional
 
 import requests
 import pandas as pd
+import numpy as np
 
 from ..core import API, is_similar_text
 from ..utils import invert_dict, format_to_path
@@ -331,6 +332,13 @@ class IBGEAgregados(API):
         # * Há uma forma de navegar por JSON trees com código mais limpo?
         json = requests.get(query).json()
     
+        valores_especiais = {
+            '-': 0., # Dado numérico igual a zero não resultante de arredondamento
+            '..': np.nan, # Não se aplica dado numérico
+            '...': np.nan, # Dado numérico não disponível
+            'X': np.nan # Dado numérico omitido a fim de evitar a individualização da informação
+        }
+    
         df_dict = dict()
         for variavel in json:
             for classificacoes in variavel['resultados']:
@@ -338,7 +346,10 @@ class IBGEAgregados(API):
                 for local in classificacoes['series']:              
                     local_stamp = local['localidade']['nome']
                     for periodo, valor in local['serie'].items():
-                        df.loc[local_stamp, periodo] = float(valor)
+                        try:
+                            df.loc[local_stamp, periodo] = float(valor)
+                        except ValueError:
+                            df.loc[local_stamp, period] = valores_especiais[valor]
                 
                 class_stamp = str()
                 for categoria in classificacoes['classificacoes']:
@@ -354,14 +365,28 @@ class IBGEAgregados(API):
         Parameters
         ----------
         identifier : str
-            Título exato ou ID do conjunto de dados de interesse.
+            Título ou ID do agregado e variável de interesse.  
+            Segue o formato "[título_ou_id_agregado];[titulo_ou_id_var]"  
+            Para pesquisar agregados ou variáveis disponíveis:  
+            - [palavras chave] -> Procura agregados que contenham as palavras no seu título  
+            - [título ou ID agregado] -> Lista as varíaveis disponíveis no agregado
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs** :   
-            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        level : str, optional
+            Nível de agregação dos dados (e.g. dados municipais, estaduais...).  
+            Deve ser o nome do nível de agregação ou um identificador IBGE (formato N*).  
+            Por padrão, assume o valor N1 (Brasil).
+        period : str, optional
+            Período de referência dos dados.  
+            Segue os formatos:  
+            - 2020|2022 -> Dados de 2020 e de 2022  
+            - 2020-2022 -> Dados de 2020 até 2022  
+            - -6 (padrão) -> Dados mais recentes (últimos seis períodos)  
+            - 202201-202206 -> Dados do mês 1 até o mês 6 de 2022 (primeiro semestre)
+        classify : Optional[dict[str]], optional
+            Dicionário de classificadores para subdividir os dados.  
+            Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.  
+            Quando um classificador for omitido em [classify], não é realizada subdivisão.  
+            Por padrão, não realiza subdivisões.
         """        
-        df = self.get_data(identifier, **kwargs)
-        for var, data in df.T.groupby(level=0):
-            file_name = format_to_path(var) + '.csv'
-            path = os.path.join(output_folder, file_name)
-            data.to_csv(path)
+        super().download_data(identifier, output_folder, **kwargs)

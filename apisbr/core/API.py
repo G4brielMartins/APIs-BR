@@ -1,10 +1,11 @@
 import re
+import os
 from typing import Optional
-from os.path import join
 
-from pandas import DataFrame
+import pandas as pd
 
 from .DateParser import DateParser
+from ..utils import format_to_path
 
 class API():
     """
@@ -47,28 +48,31 @@ class API():
         """
         raise NotImplementedError
     
-    def get_data(self, identifier: str) -> DataFrame:
+    def get_data(self, identifier: str) -> pd.DataFrame:
         """
         Retorna um data frame com os dados requisitados.  
         * Implementado nas classes filhas.
         """
         raise NotImplementedError
     
-    def download_data(self, data: dict[str, bytes], output_folder: str) -> None:
+    def download_data(self, identifier: str, output_folder: str, **kwargs) -> None:
         """
-        Salva os arquivos no dicionários [data] na pasta [output_folder].  
-        * A lógica para extrair dados da API é implementada nas classes filhas.
+        Faz o download do conjunto de dados encontrado em [output_folder].
 
         Parameters
         ----------
-        data : dict
-            Dicionário com os arquivos (bytes) a serem salvos. 
+        identifier : str
+            Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
-            Pasta em que os arquivos serão salvos.
-        """
-        for name, file_bytes in data.items():
-            with open(join(output_folder, name), 'wb') as f:
-                f.write(file_bytes)
+            Caminho da pasta onde os dados devem ser salvos.
+        **kwargs** :   
+            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        """        
+        df = self.get_data(identifier, **kwargs)
+        for var, data in df.T.groupby(level=0):
+            file_name = format_to_path(var) + '.csv'
+            path = os.path.join(output_folder, file_name)
+            data.to_csv(path)
     
     def update_dateparser(self, new_settings: dict[str, str]) -> None:
         """

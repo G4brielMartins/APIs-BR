@@ -161,13 +161,17 @@ el.replaceWith(d);
             Título exato ou ID do conjunto de dados de interesse.
         output_folder : str
             Caminho da pasta onde os dados devem ser salvos.
-        **kwargs :
-            Parâmetros passados à get_data() para filtrar os dados encontrados.
+        period : str, optional
+            Filtro de período em que os recursos foram publicados.  
+            *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+            Exemplos de uso:  
+            - &#39;2021&#39; : procura por recursos publicados em 2021  
+            - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
+            - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+        level : str, optional
+            Agrupa os dados pelo [level] de agregação.
         &#34;&#34;&#34;        
-        df = self.get_data(identifier, **kwargs)
-        file_name = format_to_path(str(df.columns.get_level_values(0)[0])) + &#39;.csv&#39;
-        path = join_path(output_folder, file_name)
-        df.to_csv(path)</code></pre>
+        super().download_data(identifier, output_folder, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Wrapper para executar requisições na API do <a href="http://www.ipeadata.gov.br/">IPEAData</a></p></div>
 <h3>Ancestors</h3>
@@ -205,13 +209,17 @@ el.replaceWith(d);
         Título exato ou ID do conjunto de dados de interesse.
     output_folder : str
         Caminho da pasta onde os dados devem ser salvos.
-    **kwargs :
-        Parâmetros passados à get_data() para filtrar os dados encontrados.
+    period : str, optional
+        Filtro de período em que os recursos foram publicados.  
+        *Aceita qualquer formato de data compatível com o dateparser, no formato DMY.  
+        Exemplos de uso:  
+        - &#39;2021&#39; : procura por recursos publicados em 2021  
+        - &#39;2019-2021&#39; : procura por recursos publicados entre 2019 e 2021  
+        - &#39;all&#39; : procura por qualquer recurso, sem filtrar data de publicação (padrão)
+    level : str, optional
+        Agrupa os dados pelo [level] de agregação.
     &#34;&#34;&#34;        
-    df = self.get_data(identifier, **kwargs)
-    file_name = format_to_path(str(df.columns.get_level_values(0)[0])) + &#39;.csv&#39;
-    path = join_path(output_folder, file_name)
-    df.to_csv(path)</code></pre>
+    super().download_data(identifier, output_folder, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Faz o download da tabela encontrada em [output_folder].</p>
 <h2 id="parameters">Parameters</h2>
@@ -220,9 +228,16 @@ el.replaceWith(d);
 <dd>Título exato ou ID do conjunto de dados de interesse.</dd>
 <dt><strong><code>output_folder</code></strong> :&ensp;<code>str</code></dt>
 <dd>Caminho da pasta onde os dados devem ser salvos.</dd>
-</dl>
-<p>**kwargs :
-Parâmetros passados à get_data() para filtrar os dados encontrados.</p></div>
+<dt><strong><code>period</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Filtro de período em que os recursos foram publicados.<br>
+*Aceita qualquer formato de data compatível com o dateparser, no formato DMY.<br>
+Exemplos de uso:<br>
+- '2021' : procura por recursos publicados em 2021<br>
+- '2019-2021' : procura por recursos publicados entre 2019 e 2021<br>
+- 'all' : procura por qualquer recurso, sem filtrar data de publicação (padrão)</dd>
+<dt><strong><code>level</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Agrupa os dados pelo [level] de agregação.</dd>
+</dl></div>
 </dd>
 <dt id="apisbr.api.IPEAData.IPEAData.get_data"><code class="name flex">
 <span>def <span class="ident">get_data</span></span>(<span>self, identifier: str, level: str = None, period: str = 'all') ‑> pandas.core.frame.DataFrame</span>
