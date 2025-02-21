@@ -19,7 +19,7 @@ def remove_accents(text: str) -> str:
 
 def remove_hyphen(text: str) -> str:
     """
-    Remove o caractere hifem ('-') do texto.  
+    Remove o caractere hífen ('-') do texto.  
     Também remove possíveis espaços duplos - comuns após remoção do hifem.
 
     Parameters

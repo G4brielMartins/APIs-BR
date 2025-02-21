@@ -5,7 +5,6 @@ import requests
 import pandas as pd
 
 from ..core import API, is_similar_text, parse_period_input
-from ..utils import format_to_path
 
 def _get_series_dict() -> dict[str, str]:
     """

@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from ..core import API, is_similar_text
-from ..utils import invert_dict, format_to_path
+from ..utils import invert_dict
 
 type JSON = dict[str]
 
@@ -353,7 +353,11 @@ class IBGEAgregados(API):
                 
                 class_stamp = str()
                 for categoria in classificacoes['classificacoes']:
-                    class_stamp += f" - {str(*categoria['categoria'].values())}"
+                    nome_categoria = str(*categoria['categoria'].values())
+                    if nome_categoria != 'Total':
+                        class_stamp += " - " + nome_categoria
+                if class_stamp == '':
+                    class_stamp += ' - Total'
                 var_stamp = variavel['variavel'] + class_stamp
                 df_dict[var_stamp] = df
         return pd.concat(df_dict, axis=1)

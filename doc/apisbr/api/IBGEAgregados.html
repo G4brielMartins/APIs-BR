@@ -326,7 +326,11 @@ el.replaceWith(d);
                 
                 class_stamp = str()
                 for categoria in classificacoes[&#39;classificacoes&#39;]:
-                    class_stamp += f&#34; - {str(*categoria[&#39;categoria&#39;].values())}&#34;
+                    nome_categoria = str(*categoria[&#39;categoria&#39;].values())
+                    if nome_categoria != &#39;Total&#39;:
+                        class_stamp += &#34; - &#34; + nome_categoria
+                if class_stamp == &#39;&#39;:
+                    class_stamp += &#39; - Total&#39;
                 var_stamp = variavel[&#39;variavel&#39;] + class_stamp
                 df_dict[var_stamp] = df
         return pd.concat(df_dict, axis=1)
@@ -596,7 +600,11 @@ Por padrão, não realiza subdivisões.</dd>
             
             class_stamp = str()
             for categoria in classificacoes[&#39;classificacoes&#39;]:
-                class_stamp += f&#34; - {str(*categoria[&#39;categoria&#39;].values())}&#34;
+                nome_categoria = str(*categoria[&#39;categoria&#39;].values())
+                if nome_categoria != &#39;Total&#39;:
+                    class_stamp += &#34; - &#34; + nome_categoria
+            if class_stamp == &#39;&#39;:
+                class_stamp += &#39; - Total&#39;
             var_stamp = variavel[&#39;variavel&#39;] + class_stamp
             df_dict[var_stamp] = df
     return pd.concat(df_dict, axis=1)</code></pre>
