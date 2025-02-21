@@ -218,7 +218,7 @@ class IBGEAgregados(API):
     
     
     def get_data(self, identifier: str, level: str = 'N1', period: str = '-6', *,
-                 classify: Optional[dict[str]] = None) -> pd.DataFrame:
+                 classify: Optional[dict[str]] = None, keep_special: bool = False) -> pd.DataFrame:
         """
         Importa os dados da API IBGE Agregados como um data frame.  
         * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
@@ -247,6 +247,13 @@ class IBGEAgregados(API):
             Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.  
             Quando um classificador for omitido em [classify], não é realizada subdivisão.  
             Por padrão, não realiza subdivisões.
+        keep_special : bool, optional
+            Mantém os valores especiais. Por padrão, 'False' - converte os valores para np.nan.  
+            Valores especiais possíveis:  
+            - '-'  : Dado numérico igual a zero não resultante de arredondamento  
+            - '..' : Não se aplica dado numérico  
+            - '...': Dado numérico não disponível  
+            - 'X'  : Dado numérico omitido a fim de evitar a individualização da informação
 
         Returns
         -------
@@ -349,7 +356,7 @@ class IBGEAgregados(API):
                         try:
                             df.loc[local_stamp, periodo] = float(valor)
                         except ValueError:
-                            df.loc[local_stamp, period] = valores_especiais[valor]
+                            df.loc[local_stamp, periodo] = valor if keep_special else valores_especiais[valor]
                 
                 class_stamp = str()
                 for categoria in classificacoes['classificacoes']:
@@ -392,5 +399,12 @@ class IBGEAgregados(API):
             Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.  
             Quando um classificador for omitido em [classify], não é realizada subdivisão.  
             Por padrão, não realiza subdivisões.
+        keep_special : bool, optional
+            Mantém os valores especiais. Por padrão, 'False' - converte os valores para np.nan.  
+            Valores especiais possíveis:  
+            - '-'  : Dado numérico igual a zero não resultante de arredondamento  
+            - '..' : Não se aplica dado numérico  
+            - '...': Dado numérico não disponível  
+            - 'X'  : Dado numérico omitido a fim de evitar a individualização da informação
         """        
         super().download_data(identifier, output_folder, **kwargs)

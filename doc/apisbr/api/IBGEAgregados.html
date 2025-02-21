@@ -191,7 +191,7 @@ el.replaceWith(d);
     
     
     def get_data(self, identifier: str, level: str = &#39;N1&#39;, period: str = &#39;-6&#39;, *,
-                 classify: Optional[dict[str]] = None) -&gt; pd.DataFrame:
+                 classify: Optional[dict[str]] = None, keep_special: bool = False) -&gt; pd.DataFrame:
         &#34;&#34;&#34;
         Importa os dados da API IBGE Agregados como um data frame.  
         * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
@@ -220,6 +220,13 @@ el.replaceWith(d);
             Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
             Quando um classificador for omitido em [classify], não é realizada subdivisão.  
             Por padrão, não realiza subdivisões.
+        keep_special : bool, optional
+            Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
+            Valores especiais possíveis:  
+            - &#39;-&#39;  : Dado numérico igual a zero não resultante de arredondamento  
+            - &#39;..&#39; : Não se aplica dado numérico  
+            - &#39;...&#39;: Dado numérico não disponível  
+            - &#39;X&#39;  : Dado numérico omitido a fim de evitar a individualização da informação
 
         Returns
         -------
@@ -322,7 +329,7 @@ el.replaceWith(d);
                         try:
                             df.loc[local_stamp, periodo] = float(valor)
                         except ValueError:
-                            df.loc[local_stamp, period] = valores_especiais[valor]
+                            df.loc[local_stamp, periodo] = valor if keep_special else valores_especiais[valor]
                 
                 class_stamp = str()
                 for categoria in classificacoes[&#39;classificacoes&#39;]:
@@ -365,6 +372,13 @@ el.replaceWith(d);
             Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
             Quando um classificador for omitido em [classify], não é realizada subdivisão.  
             Por padrão, não realiza subdivisões.
+        keep_special : bool, optional
+            Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
+            Valores especiais possíveis:  
+            - &#39;-&#39;  : Dado numérico igual a zero não resultante de arredondamento  
+            - &#39;..&#39; : Não se aplica dado numérico  
+            - &#39;...&#39;: Dado numérico não disponível  
+            - &#39;X&#39;  : Dado numérico omitido a fim de evitar a individualização da informação
         &#34;&#34;&#34;        
         super().download_data(identifier, output_folder, **kwargs)</code></pre>
 </details>
@@ -424,6 +438,13 @@ el.replaceWith(d);
         Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
         Quando um classificador for omitido em [classify], não é realizada subdivisão.  
         Por padrão, não realiza subdivisões.
+    keep_special : bool, optional
+        Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
+        Valores especiais possíveis:  
+        - &#39;-&#39;  : Dado numérico igual a zero não resultante de arredondamento  
+        - &#39;..&#39; : Não se aplica dado numérico  
+        - &#39;...&#39;: Dado numérico não disponível  
+        - &#39;X&#39;  : Dado numérico omitido a fim de evitar a individualização da informação
     &#34;&#34;&#34;        
     super().download_data(identifier, output_folder, **kwargs)</code></pre>
 </details>
@@ -454,10 +475,19 @@ Segue os formatos:<br>
 Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.<br>
 Quando um classificador for omitido em [classify], não é realizada subdivisão.<br>
 Por padrão, não realiza subdivisões.</dd>
+<dt><strong><code>keep_special</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Mantém os valores especiais. Por padrão, 'False' - converte os valores para np.nan.<br>
+Valores especiais possíveis:<br>
+- '-'
+: Dado numérico igual a zero não resultante de arredondamento<br>
+- '..' : Não se aplica dado numérico<br>
+- '&hellip;': Dado numérico não disponível<br>
+- 'X'
+: Dado numérico omitido a fim de evitar a individualização da informação</dd>
 </dl></div>
 </dd>
 <dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_data"><code class="name flex">
-<span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None) ‑> pandas.core.frame.DataFrame</span>
+<span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None,<br>keep_special: bool = False) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -465,7 +495,7 @@ Por padrão, não realiza subdivisões.</dd>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_data(self, identifier: str, level: str = &#39;N1&#39;, period: str = &#39;-6&#39;, *,
-             classify: Optional[dict[str]] = None) -&gt; pd.DataFrame:
+             classify: Optional[dict[str]] = None, keep_special: bool = False) -&gt; pd.DataFrame:
     &#34;&#34;&#34;
     Importa os dados da API IBGE Agregados como um data frame.  
     * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
@@ -494,6 +524,13 @@ Por padrão, não realiza subdivisões.</dd>
         Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
         Quando um classificador for omitido em [classify], não é realizada subdivisão.  
         Por padrão, não realiza subdivisões.
+    keep_special : bool, optional
+        Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
+        Valores especiais possíveis:  
+        - &#39;-&#39;  : Dado numérico igual a zero não resultante de arredondamento  
+        - &#39;..&#39; : Não se aplica dado numérico  
+        - &#39;...&#39;: Dado numérico não disponível  
+        - &#39;X&#39;  : Dado numérico omitido a fim de evitar a individualização da informação
 
     Returns
     -------
@@ -596,7 +633,7 @@ Por padrão, não realiza subdivisões.</dd>
                     try:
                         df.loc[local_stamp, periodo] = float(valor)
                     except ValueError:
-                        df.loc[local_stamp, period] = valores_especiais[valor]
+                        df.loc[local_stamp, periodo] = valor if keep_special else valores_especiais[valor]
             
             class_stamp = str()
             for categoria in classificacoes[&#39;classificacoes&#39;]:
@@ -635,6 +672,15 @@ Segue os formatos:<br>
 Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.<br>
 Quando um classificador for omitido em [classify], não é realizada subdivisão.<br>
 Por padrão, não realiza subdivisões.</dd>
+<dt><strong><code>keep_special</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Mantém os valores especiais. Por padrão, 'False' - converte os valores para np.nan.<br>
+Valores especiais possíveis:<br>
+- '-'
+: Dado numérico igual a zero não resultante de arredondamento<br>
+- '..' : Não se aplica dado numérico<br>
+- '&hellip;': Dado numérico não disponível<br>
+- 'X'
+: Dado numérico omitido a fim de evitar a individualização da informação</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
