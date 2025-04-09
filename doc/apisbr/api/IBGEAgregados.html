@@ -191,7 +191,8 @@ el.replaceWith(d);
     
     
     def get_data(self, identifier: str, level: str = &#39;N1&#39;, period: str = &#39;-6&#39;, *,
-                 classify: Optional[dict[str]] = None, keep_special: bool = False) -&gt; pd.DataFrame:
+                 classify: Optional[dict[str]] = None, named_var: bool = True,
+                 keep_special: bool = False) -&gt; pd.DataFrame:
         &#34;&#34;&#34;
         Importa os dados da API IBGE Agregados como um data frame.  
         * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
@@ -220,6 +221,9 @@ el.replaceWith(d);
             Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
             Quando um classificador for omitido em [classify], não é realizada subdivisão.  
             Por padrão, não realiza subdivisões.
+        named_var : bool, optional
+            Define se o nome base da variável será utilizado na indexação dos dados. Por padrão, insere o nome base (True).  
+            Útil para desambiguação caso haja concatenação de vários dados em uma única estrutura.
         keep_special : bool, optional
             Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
             Valores especiais possíveis:  
@@ -248,7 +252,7 @@ el.replaceWith(d);
         if id_variavel is None:
             msg = &#34;Nenhuma variável fornecida. Seguem variaveis disponíveis:&#34;
             for var in self.get_metadata(id_agregado)[&#39;variaveis&#39;]:
-                 msg += f&#34;\n{var[&#39;nome&#39;]} : {var[&#39;id&#39;]}&#34;
+                msg += f&#34;\n{var[&#39;nome&#39;]} : {var[&#39;id&#39;]}&#34;
             raise ValueError(msg)
         
         # ----- Definição do query base
@@ -301,6 +305,7 @@ el.replaceWith(d);
                 parametro_class += str(ids_cat).replace(&#39; &#39;, &#39;&#39;) + &#39;|&#39;
             return parametro_class[:-1] # Remove o último caráctere pipe (|)
         
+        # Aplica o parâmetro de classificação ao query
         if classify is not None:
             class_dict = get_class_dict()
             if (not isinstance(classify, dict)) or (len(classify) == 0):
@@ -308,39 +313,66 @@ el.replaceWith(d);
             query += get_parametro_classificacao()
         
         # ----- Obtenção do data frame
-        # A série de for loops representa a navegação pelo JSON retornado pela API
-        # * Há uma forma de navegar por JSON trees com código mais limpo?
+        # Navegação pela árvore JSON: Metadados
+        # Coleta metadados das variáveis solicitadas (nome da variável e categorias de agregação)
         json = requests.get(query).json()
-    
-        valores_especiais = {
-            &#39;-&#39;: 0., # Dado numérico igual a zero não resultante de arredondamento
-            &#39;..&#39;: np.nan, # Não se aplica dado numérico
-            &#39;...&#39;: np.nan, # Dado numérico não disponível
-            &#39;X&#39;: np.nan # Dado numérico omitido a fim de evitar a individualização da informação
-        }
-    
-        df_dict = dict()
-        for variavel in json:
-            for classificacoes in variavel[&#39;resultados&#39;]:
-                df = pd.DataFrame()
-                for local in classificacoes[&#39;series&#39;]:              
-                    local_stamp = local[&#39;localidade&#39;][&#39;nome&#39;]
-                    for periodo, valor in local[&#39;serie&#39;].items():
-                        try:
-                            df.loc[local_stamp, periodo] = float(valor)
-                        except ValueError:
-                            df.loc[local_stamp, periodo] = valor if keep_special else valores_especiais[valor]
-                
-                class_stamp = str()
-                for categoria in classificacoes[&#39;classificacoes&#39;]:
-                    nome_categoria = str(*categoria[&#39;categoria&#39;].values())
-                    if nome_categoria != &#39;Total&#39;:
-                        class_stamp += &#34; - &#34; + nome_categoria
-                if class_stamp == &#39;&#39;:
-                    class_stamp += &#39; - Total&#39;
-                var_stamp = variavel[&#39;variavel&#39;] + class_stamp
-                df_dict[var_stamp] = df
-        return pd.concat(df_dict, axis=1)
+        
+        temp_df = pd.json_normalize(json)
+        data_name = temp_df[&#39;variavel&#39;][0]
+        
+        temp_df = pd.json_normalize(json, [&#39;resultados&#39;])
+        
+        def get_categorias(x: str) -&gt; str:
+            # Extrai o nome das categorias de agregação de cada conjunto de dados
+            categorias = np.array([list(clas[&#39;categoria&#39;].values())[0] for clas in x])
+            
+            # A flag &#39;Total&#39; indica que não houve agregação por alguma das categorias disponíveis
+            # É mantida apenas quando nenhuma agregação é utilizada (irrelevante em outras situações)
+            categorias = categorias[categorias != &#39;Total&#39;]
+            if len(categorias) == 0:
+                return &#39;Total&#39;
+            return &#39;, &#39;.join(categorias)
+        temp_df[&#39;classificacoes&#39;] = temp_df[&#39;classificacoes&#39;].apply(get_categorias)
+        
+        # Insere o nome base das variáveis caso seja solicitado
+        if named_var:
+            temp_df[&#39;classificacoes&#39;] = data_name + &#34; - &#34; + temp_df[&#39;classificacoes&#39;]
+        
+        # Navegação pela árvore JSON: Dados
+        # Acessa os valores das variáveis solicitadas
+        temp_df[&#39;series&#39;] = temp_df[&#39;series&#39;].apply(lambda x: pd.json_normalize(x))
+        temp_df = temp_df.set_index(&#39;classificacoes&#39;)
+        temp_df = pd.concat(temp_df.to_dict()[&#39;series&#39;], axis=1)
+
+        # Extrai os nomes de localidade e os utiliza na indexação dos dados
+        temp_df_columns = np.array(temp_df.columns.to_list())
+        series_columns = [str(col) for col in temp_df_columns[:, 1] if col.split(&#39;.&#39;)[0] == &#39;serie&#39;]
+        temp_df = temp_df.loc[:, (slice(None), [&#39;localidade.nome&#39;] + series_columns)]
+        temp_df = temp_df.set_index((temp_df_columns[0, 0], &#39;localidade.nome&#39;))
+        temp_df.index.rename(None, inplace=True)
+        temp_df = temp_df.drop([&#39;localidade.nome&#39;], axis=1, level=1)
+
+        # Renomeia as colunas para tornar a informação mais legível
+        new_names = pd.Series(series_columns).apply(lambda x: x.split(&#39;.&#39;)[1])
+        name_mapper = {k: v for k, v in zip(series_columns, new_names)}
+        df: pd.DataFrame = temp_df.rename(name_mapper, level=1, axis=1)
+        
+        # Trata os possíveis valores especiais retornados pela API
+        if not keep_special:
+            valores_especiais = {
+                &#39;-&#39;: 0., # Dado numérico igual a zero não resultante de arredondamento
+                &#39;..&#39;: np.nan, # Não se aplica dado numérico
+                &#39;...&#39;: np.nan, # Dado numérico não disponível
+                &#39;X&#39;: np.nan # Dado numérico omitido a fim de evitar a individualização da informação
+            }
+            def treat_special(x: float|str) -&gt; float:
+                try:
+                    return float(x)
+                except ValueError:
+                    return valores_especiais[x]
+            df = df.map(treat_special)
+        
+        return df
     
     def download_data(self, identifier: str, output_folder: str, **kwargs) -&gt; None:
         &#34;&#34;&#34;
@@ -372,6 +404,10 @@ el.replaceWith(d);
             Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
             Quando um classificador for omitido em [classify], não é realizada subdivisão.  
             Por padrão, não realiza subdivisões.
+        named_var : bool, optional
+            Define se o nome base da variável será utilizado na indexação dos dados.  
+            Útil para desambiguação caso haja concatenação de vários dados em uma única estrutura.  
+            Por padrão, insere o nome base (True).
         keep_special : bool, optional
             Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
             Valores especiais possíveis:  
@@ -438,6 +474,10 @@ el.replaceWith(d);
         Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
         Quando um classificador for omitido em [classify], não é realizada subdivisão.  
         Por padrão, não realiza subdivisões.
+    named_var : bool, optional
+        Define se o nome base da variável será utilizado na indexação dos dados.  
+        Útil para desambiguação caso haja concatenação de vários dados em uma única estrutura.  
+        Por padrão, insere o nome base (True).
     keep_special : bool, optional
         Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
         Valores especiais possíveis:  
@@ -475,6 +515,10 @@ Segue os formatos:<br>
 Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.<br>
 Quando um classificador for omitido em [classify], não é realizada subdivisão.<br>
 Por padrão, não realiza subdivisões.</dd>
+<dt><strong><code>named_var</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Define se o nome base da variável será utilizado na indexação dos dados.<br>
+Útil para desambiguação caso haja concatenação de vários dados em uma única estrutura.<br>
+Por padrão, insere o nome base (True).</dd>
 <dt><strong><code>keep_special</code></strong> :&ensp;<code>bool</code>, optional</dt>
 <dd>Mantém os valores especiais. Por padrão, 'False' - converte os valores para np.nan.<br>
 Valores especiais possíveis:<br>
@@ -487,7 +531,7 @@ Valores especiais possíveis:<br>
 </dl></div>
 </dd>
 <dt id="apisbr.api.IBGEAgregados.IBGEAgregados.get_data"><code class="name flex">
-<span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None,<br>keep_special: bool = False) ‑> pandas.core.frame.DataFrame</span>
+<span>def <span class="ident">get_data</span></span>(<span>self,<br>identifier: str,<br>level: str = 'N1',<br>period: str = '-6',<br>*,<br>classify: dict[str] | None = None,<br>named_var: bool = True,<br>keep_special: bool = False) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -495,7 +539,8 @@ Valores especiais possíveis:<br>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_data(self, identifier: str, level: str = &#39;N1&#39;, period: str = &#39;-6&#39;, *,
-             classify: Optional[dict[str]] = None, keep_special: bool = False) -&gt; pd.DataFrame:
+             classify: Optional[dict[str]] = None, named_var: bool = True,
+             keep_special: bool = False) -&gt; pd.DataFrame:
     &#34;&#34;&#34;
     Importa os dados da API IBGE Agregados como um data frame.  
     * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).
@@ -524,6 +569,9 @@ Valores especiais possíveis:<br>
         Por exemplo, &#34;População residente, por sexo&#34; pode receber classify = {&#39;Sexo&#39;: &#39;Homens&#39;} para obter somente a população masculina.  
         Quando um classificador for omitido em [classify], não é realizada subdivisão.  
         Por padrão, não realiza subdivisões.
+    named_var : bool, optional
+        Define se o nome base da variável será utilizado na indexação dos dados. Por padrão, insere o nome base (True).  
+        Útil para desambiguação caso haja concatenação de vários dados em uma única estrutura.
     keep_special : bool, optional
         Mantém os valores especiais. Por padrão, &#39;False&#39; - converte os valores para np.nan.  
         Valores especiais possíveis:  
@@ -552,7 +600,7 @@ Valores especiais possíveis:<br>
     if id_variavel is None:
         msg = &#34;Nenhuma variável fornecida. Seguem variaveis disponíveis:&#34;
         for var in self.get_metadata(id_agregado)[&#39;variaveis&#39;]:
-             msg += f&#34;\n{var[&#39;nome&#39;]} : {var[&#39;id&#39;]}&#34;
+            msg += f&#34;\n{var[&#39;nome&#39;]} : {var[&#39;id&#39;]}&#34;
         raise ValueError(msg)
     
     # ----- Definição do query base
@@ -605,6 +653,7 @@ Valores especiais possíveis:<br>
             parametro_class += str(ids_cat).replace(&#39; &#39;, &#39;&#39;) + &#39;|&#39;
         return parametro_class[:-1] # Remove o último caráctere pipe (|)
     
+    # Aplica o parâmetro de classificação ao query
     if classify is not None:
         class_dict = get_class_dict()
         if (not isinstance(classify, dict)) or (len(classify) == 0):
@@ -612,39 +661,66 @@ Valores especiais possíveis:<br>
         query += get_parametro_classificacao()
     
     # ----- Obtenção do data frame
-    # A série de for loops representa a navegação pelo JSON retornado pela API
-    # * Há uma forma de navegar por JSON trees com código mais limpo?
+    # Navegação pela árvore JSON: Metadados
+    # Coleta metadados das variáveis solicitadas (nome da variável e categorias de agregação)
     json = requests.get(query).json()
+    
+    temp_df = pd.json_normalize(json)
+    data_name = temp_df[&#39;variavel&#39;][0]
+    
+    temp_df = pd.json_normalize(json, [&#39;resultados&#39;])
+    
+    def get_categorias(x: str) -&gt; str:
+        # Extrai o nome das categorias de agregação de cada conjunto de dados
+        categorias = np.array([list(clas[&#39;categoria&#39;].values())[0] for clas in x])
+        
+        # A flag &#39;Total&#39; indica que não houve agregação por alguma das categorias disponíveis
+        # É mantida apenas quando nenhuma agregação é utilizada (irrelevante em outras situações)
+        categorias = categorias[categorias != &#39;Total&#39;]
+        if len(categorias) == 0:
+            return &#39;Total&#39;
+        return &#39;, &#39;.join(categorias)
+    temp_df[&#39;classificacoes&#39;] = temp_df[&#39;classificacoes&#39;].apply(get_categorias)
+    
+    # Insere o nome base das variáveis caso seja solicitado
+    if named_var:
+        temp_df[&#39;classificacoes&#39;] = data_name + &#34; - &#34; + temp_df[&#39;classificacoes&#39;]
+    
+    # Navegação pela árvore JSON: Dados
+    # Acessa os valores das variáveis solicitadas
+    temp_df[&#39;series&#39;] = temp_df[&#39;series&#39;].apply(lambda x: pd.json_normalize(x))
+    temp_df = temp_df.set_index(&#39;classificacoes&#39;)
+    temp_df = pd.concat(temp_df.to_dict()[&#39;series&#39;], axis=1)
 
-    valores_especiais = {
-        &#39;-&#39;: 0., # Dado numérico igual a zero não resultante de arredondamento
-        &#39;..&#39;: np.nan, # Não se aplica dado numérico
-        &#39;...&#39;: np.nan, # Dado numérico não disponível
-        &#39;X&#39;: np.nan # Dado numérico omitido a fim de evitar a individualização da informação
-    }
+    # Extrai os nomes de localidade e os utiliza na indexação dos dados
+    temp_df_columns = np.array(temp_df.columns.to_list())
+    series_columns = [str(col) for col in temp_df_columns[:, 1] if col.split(&#39;.&#39;)[0] == &#39;serie&#39;]
+    temp_df = temp_df.loc[:, (slice(None), [&#39;localidade.nome&#39;] + series_columns)]
+    temp_df = temp_df.set_index((temp_df_columns[0, 0], &#39;localidade.nome&#39;))
+    temp_df.index.rename(None, inplace=True)
+    temp_df = temp_df.drop([&#39;localidade.nome&#39;], axis=1, level=1)
 
-    df_dict = dict()
-    for variavel in json:
-        for classificacoes in variavel[&#39;resultados&#39;]:
-            df = pd.DataFrame()
-            for local in classificacoes[&#39;series&#39;]:              
-                local_stamp = local[&#39;localidade&#39;][&#39;nome&#39;]
-                for periodo, valor in local[&#39;serie&#39;].items():
-                    try:
-                        df.loc[local_stamp, periodo] = float(valor)
-                    except ValueError:
-                        df.loc[local_stamp, periodo] = valor if keep_special else valores_especiais[valor]
-            
-            class_stamp = str()
-            for categoria in classificacoes[&#39;classificacoes&#39;]:
-                nome_categoria = str(*categoria[&#39;categoria&#39;].values())
-                if nome_categoria != &#39;Total&#39;:
-                    class_stamp += &#34; - &#34; + nome_categoria
-            if class_stamp == &#39;&#39;:
-                class_stamp += &#39; - Total&#39;
-            var_stamp = variavel[&#39;variavel&#39;] + class_stamp
-            df_dict[var_stamp] = df
-    return pd.concat(df_dict, axis=1)</code></pre>
+    # Renomeia as colunas para tornar a informação mais legível
+    new_names = pd.Series(series_columns).apply(lambda x: x.split(&#39;.&#39;)[1])
+    name_mapper = {k: v for k, v in zip(series_columns, new_names)}
+    df: pd.DataFrame = temp_df.rename(name_mapper, level=1, axis=1)
+    
+    # Trata os possíveis valores especiais retornados pela API
+    if not keep_special:
+        valores_especiais = {
+            &#39;-&#39;: 0., # Dado numérico igual a zero não resultante de arredondamento
+            &#39;..&#39;: np.nan, # Não se aplica dado numérico
+            &#39;...&#39;: np.nan, # Dado numérico não disponível
+            &#39;X&#39;: np.nan # Dado numérico omitido a fim de evitar a individualização da informação
+        }
+        def treat_special(x: float|str) -&gt; float:
+            try:
+                return float(x)
+            except ValueError:
+                return valores_especiais[x]
+        df = df.map(treat_special)
+    
+    return df</code></pre>
 </details>
 <div class="desc"><p>Importa os dados da API IBGE Agregados como um data frame.<br>
 * Argumentos incorretos resultam em consultas (e.g. [level] inválido irá listar os níveis disponíveis).</p>
@@ -672,6 +748,9 @@ Segue os formatos:<br>
 Por exemplo, "População residente, por sexo" pode receber classify = {'Sexo': 'Homens'} para obter somente a população masculina.<br>
 Quando um classificador for omitido em [classify], não é realizada subdivisão.<br>
 Por padrão, não realiza subdivisões.</dd>
+<dt><strong><code>named_var</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Define se o nome base da variável será utilizado na indexação dos dados. Por padrão, insere o nome base (True).<br>
+Útil para desambiguação caso haja concatenação de vários dados em uma única estrutura.</dd>
 <dt><strong><code>keep_special</code></strong> :&ensp;<code>bool</code>, optional</dt>
 <dd>Mantém os valores especiais. Por padrão, 'False' - converte os valores para np.nan.<br>
 Valores especiais possíveis:<br>

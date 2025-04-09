@@ -68,7 +68,7 @@ class DadosAbertos(API):
         raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
     def list_recursos(self, identifier: str, period: str = 'all',
-                    file_type: str = 'csv') -> dict[str, str]:
+                      file_type: str = 'csv') -> dict[str, str]:
         """
         Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
 

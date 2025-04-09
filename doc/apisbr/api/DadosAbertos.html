@@ -115,7 +115,7 @@ el.replaceWith(d);
         raise self.NoMatchFoundError(dict_nomes_semelhantes)
     
     def list_recursos(self, identifier: str, period: str = &#39;all&#39;,
-                    file_type: str = &#39;csv&#39;) -&gt; dict[str, str]:
+                      file_type: str = &#39;csv&#39;) -&gt; dict[str, str]:
         &#34;&#34;&#34;
         Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
 
@@ -411,7 +411,7 @@ Dá print nos conjuntos de dados com nomes semelhantes ao pesquisado.</dd>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def list_recursos(self, identifier: str, period: str = &#39;all&#39;,
-                file_type: str = &#39;csv&#39;) -&gt; dict[str, str]:
+                  file_type: str = &#39;csv&#39;) -&gt; dict[str, str]:
     &#34;&#34;&#34;
     Procura os recursos (arquivos para download) disponíveis no conjunto de dados pesquisado e retorna seus URLs.
 
