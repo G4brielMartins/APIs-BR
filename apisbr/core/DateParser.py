@@ -22,5 +22,9 @@ class DateParser():
         """        
         self.settings = settings
     
-    def parse(self, date_string: str):
-        return dateparser.parse(date_string, settings=self.settings)
+    def parse(self, date_string: str, prefer_first=False):
+        settings = self.settings.copy()
+        if prefer_first:
+            settings['PREFER_DAY_OF_MONTH'] = 'first'
+            settings['PREFER_MONTH_OF_YEAR'] = 'first'
+        return dateparser.parse(date_string, settings=settings)

@@ -62,7 +62,7 @@ def parse_period_input(period: str, date_parser: DateParser = DateParser()) -> t
             min_date = dt.datetime(d.year, 1, 1)
             max_date = d
         case [x, y]:
-            min_date = date_parser.parse(x)
+            min_date = date_parser.parse(x, prefer_first=True)
             max_date = date_parser.parse(y)
         case _:
             raise ValueError("Valor de [period] não pôde ser reconhecido.")

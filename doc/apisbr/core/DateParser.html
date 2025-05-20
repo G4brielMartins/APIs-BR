@@ -75,8 +75,12 @@ el.replaceWith(d);
         &#34;&#34;&#34;        
         self.settings = settings
     
-    def parse(self, date_string: str):
-        return dateparser.parse(date_string, settings=self.settings)</code></pre>
+    def parse(self, date_string: str, prefer_first=False):
+        settings = self.settings.copy()
+        if prefer_first:
+            settings[&#39;PREFER_DAY_OF_MONTH&#39;] = &#39;first&#39;
+            settings[&#39;PREFER_MONTH_OF_YEAR&#39;] = &#39;first&#39;
+        return dateparser.parse(date_string, settings=settings)</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Class variables</h3>
@@ -89,15 +93,19 @@ el.replaceWith(d);
 <h3>Methods</h3>
 <dl>
 <dt id="apisbr.core.DateParser.DateParser.parse"><code class="name flex">
-<span>def <span class="ident">parse</span></span>(<span>self, date_string: str)</span>
+<span>def <span class="ident">parse</span></span>(<span>self, date_string: str, prefer_first=False)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def parse(self, date_string: str):
-    return dateparser.parse(date_string, settings=self.settings)</code></pre>
+<pre><code class="python">def parse(self, date_string: str, prefer_first=False):
+    settings = self.settings.copy()
+    if prefer_first:
+        settings[&#39;PREFER_DAY_OF_MONTH&#39;] = &#39;first&#39;
+        settings[&#39;PREFER_MONTH_OF_YEAR&#39;] = &#39;first&#39;
+    return dateparser.parse(date_string, settings=settings)</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
