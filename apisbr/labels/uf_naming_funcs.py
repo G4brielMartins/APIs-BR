@@ -1,5 +1,5 @@
-from .text_format_funcs import remove_accents
-from .basic_functions import invert_dict
+from ..utils.text_format_funcs import remove_accents
+from ..utils.basic_functions import invert_dict
 
 _uf_name2abbrev ={
     'Acre': 'AC',
@@ -33,7 +33,7 @@ _uf_name2abbrev ={
 
 _uf_abbrev2name = invert_dict(_uf_name2abbrev)
 
-def uf_name_to_abbrev(uf_name: str) -> str:
+def get_uf_abbrev(uf_name: str) -> str:
     """
     Recebe o nome de uma UF e retorna sua abreviação (SC, MT, DF...).
 
@@ -50,7 +50,7 @@ def uf_name_to_abbrev(uf_name: str) -> str:
     name = remove_accents(uf_name).title()
     return _uf_name2abbrev[name]
 
-def uf_abbrev_to_name(uf_abbrev: str) -> str:
+def get_uf_name(uf_abbrev: str) -> str:
     """
     Recebe a abreviação de uma UF (SC, MT, DF...) e retorna seu nome.
 
